@@ -21,10 +21,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/echeide/runa-xapi.git"
+    "url": "https://github.com/Echeide/runa-xapi.git"
   },
   "bugs": {
-    "url": "https://github.com/echeide/runa-xapi/issues"
+    "url": "https://github.com/Echeide/runa-xapi/issues"
   },
-  "homepage": "https://github.com/echeide/runa-xapi#readme"
+  "homepage": "https://github.com/Echeide/runa-xapi#readme"
 }
