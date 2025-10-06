@@ -649,4 +649,5 @@ class XAPIManagerIframe extends XAPIManager {
 }
 
 // Exportar para uso global
+window.XAPIManager = XAPIManager;
 window.XAPIManagerIframe = XAPIManagerIframe;
