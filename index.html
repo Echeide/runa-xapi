@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Combinación Rúnica - Versión Iframe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=MedievalSharp&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <script src="xapi-config.js"></script>
+    <script src="xapi.js"></script>
+    <style>
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background-color: #2c1f1f;
+        }
+        body {
+            font-family: 'MedievalSharp', cursive;
+            background-image: url('https://www.transparenttextures.com/patterns/stone-wall.png');
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .title-font {
+            font-family: 'Cinzel', serif;
+        }
+        .rune-btn, .guess-slot {
+            background-color: rgba(10, 5, 5, 0.4);
+            border: 2px solid #6b4f4f;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 8px;
+        }
+        .rune-btn:hover:not(:disabled) {
+            background-color: rgba(60, 40, 40, 0.6);
+            border-color: #a18080;
+        }
+        .rune-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .guess-slot {
+             cursor: default;
+        }
+        .guess-slot.filled {
+            border-color: #c5a687;
+        }
+        .rune-btn svg, .guess-slot svg {
+            width: 65%;
+            height: 65%;
+            stroke: #e0d1b1;
+            stroke-width: 1.5;
+            transition: stroke 0.2s;
+        }
+        .revealed-slot {
+            background-color: #e0d1b1;
+            border-color: #2c1f1f;
+        }
+        .revealed-slot svg {
+            stroke: #2c1f1f;
+        }
+        .feedback-peg {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 1px solid rgba(0,0,0,0.5);
+        }
+        .peg-correct { background-color: #86efac; }
+        .peg-present { background-color: #fde047; }
+        .peg-empty { background-color: rgba(0,0,0,0.2); }
+        
+        @keyframes shake {
+          10%, 90% { transform: translate3d(-1px, 0, 0); }
+          20%, 80% { transform: translate3d(2px, 0, 0); }
+          30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+          40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        .shake {
+          animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes flash {
+          0% { opacity: 1; }
+          100% { opacity: 0; }
+        }
+        .explosion-flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: white;
+            z-index: 9999;
+            animation: flash 0.4s forwards;
+            pointer-events: none;
+        }
+
+        .cracks-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 9998;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .cracks-overlay.visible {
+            opacity: 1;
+        }
+        .cracks-overlay line {
+            stroke: rgba(255, 255, 255, 0.7);
+            stroke-width: 0.2;
+        }
+
+        /* Indicador de estado XAPI */
+        .xapi-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            z-index: 10000;
+        }
+        .xapi-connected { background: #d4edda; color: #155724; }
+        .xapi-disconnected { background: #f8d7da; color: #721c24; }
+        .xapi-paused { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body class="text-gray-300">
+
+    <!-- Indicador de estado XAPI -->
+    <div id="xapi-status" class="xapi-status xapi-disconnected">
+        XAPI: Desconectado
+    </div>
+
+    <div id="cracks-overlay" class="cracks-overlay">
+        <svg width="100%" height="100%" preserveAspectRatio="none">
+            <line x1="0" y1="0" x2="100%" y2="100%"/>
+            <line x1="100%" y1="0" x2="0" y2="100%"/>
+            <line x1="50%" y1="0" x2="50%" y2="100%"/>
+            <line x1="0" y1="50%" x2="100%" y2="50%"/>
+            <line x1="20%" y1="0" x2="80%" y2="100%"/>
+            <line x1="80%" y1="0" x2="20%" y2="100%"/>
+        </svg>
+    </div>
+
+    <div class="container mx-auto p-2 max-w-sm">
+        <main class="bg-black bg-opacity-40 p-4 rounded-xl shadow-2xl">
+            <!-- Área de Adivinanzas -->
+            <div id="guesses-container" class="space-y-2 mb-4">
+                <!-- Las filas de adivinanzas se generan aquí -->
+            </div>
+
+            <!-- Panel de Runas Disponibles -->
+            <div class="mb-4">
+                <div id="rune-palette" class="grid grid-cols-6 gap-1">
+                    <!-- Las runas para elegir se generan aquí -->
+                </div>
+            </div>
+            
+            <!-- Leyenda de Pistas -->
+            <div class="text-xs text-gray-400 mb-4 flex items-center justify-center space-x-4">
+                <div class="flex items-center space-x-1.5">
+                    <div class="feedback-peg peg-correct"></div>
+                    <span>Posición Correcta</span>
+                </div>
+                 <div class="flex items-center space-x-1.5">
+                    <div class="feedback-peg peg-present"></div>
+                    <span>Runa Correcta</span>
+                </div>
+            </div>
+
+            <!-- Controles y Mensajes -->
+            <div id="controls" class="flex flex-col items-center justify-center">
+                 <div class="flex w-full gap-2 mb-3">
+                    <button id="clear-btn" class="w-1/2 bg-red-900/70 hover:bg-red-800/70 text-white font-bold py-2 px-4 rounded-lg title-font transition-colors">Limpiar</button>
+                    <button id="guess-btn" class="w-1/2 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-4 rounded-lg title-font transition-colors">Probar</button>
+                 </div>
+                 <p id="message-area" class="text-base text-center h-5"></p>
+            </div>
+        </main>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Configuración y Constantes ---
+    const RUNES = [
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2 L12 22 M12 12 L20 4 M12 12 L20 20"></path></svg>`,
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 12 L22 12 M12 2 L2 12 L12 22"></path></svg>`,
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 2 L22 2 M2 22 L22 22 M12 2 L12 22"></path></svg>`,
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4 L20 20 M20 4 L4 20"></path></svg>`,
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2 L12 22 M12 2 L2 12 M12 2 L22 12"></path></svg>`,
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 2 L12 12 L2 22 M12 12 L22 2 M12 12 L22 22"></path></svg>`
+    ];
+    const CODE_LENGTH = 4;
+    const MAX_GUESSES = 8;
+
+    // --- Configuración XAPI ---
+    // La configuración se carga desde xapi-config.js
+    // Incluye detección automática del sistema padre
+    
+    // Inicializar XAPI Manager
+    let xapiManager = null;
+    if (XAPI_CONFIG.enabled) {
+        xapiManager = new XAPIManagerIframe(XAPI_CONFIG);
+        console.log('XAPI habilitado:', XAPI_CONFIG.endpoint);
+        updateXAPIStatus('connected');
+    } else {
+        console.log('XAPI deshabilitado');
+        updateXAPIStatus('disconnected');
+    }
+
+    // --- Efectos de Sonido ---
+    const winSound = new Audio();
+    const loseSound = new Audio();
+
+    // --- Elementos del DOM ---
+    const guessesContainer = document.getElementById('guesses-container');
+    const runePalette = document.getElementById('rune-palette');
+    const guessBtn = document.getElementById('guess-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const messageArea = document.getElementById('message-area');
+    const mainContainer = document.querySelector('main');
+    const cracksOverlay = document.getElementById('cracks-overlay');
+
+    // --- Variables de Estado del Juego ---
+    let secretCode = [], currentGuess = [], currentRowIndex = 0;
+    let gameStartTime = null;
+    let gameEndTime = null;
+
+    // --- Funciones de Estado XAPI ---
+    function updateXAPIStatus(status) {
+        const statusElement = document.getElementById('xapi-status');
+        statusElement.className = 'xapi-status';
+        
+        switch (status) {
+            case 'connected':
+                statusElement.classList.add('xapi-connected');
+                statusElement.textContent = 'XAPI: Conectado';
+                break;
+            case 'disconnected':
+                statusElement.classList.add('xapi-disconnected');
+                statusElement.textContent = 'XAPI: Desconectado';
+                break;
+            case 'paused':
+                statusElement.classList.add('xapi-paused');
+                statusElement.textContent = 'XAPI: Pausado';
+                break;
+        }
+    }
+
+    function initGame() {
+        secretCode = []; currentGuess = []; currentRowIndex = 0;
+        messageArea.textContent = '';
+        messageArea.style.color = '';
+        guessBtn.disabled = false;
+        clearBtn.disabled = false;
+        guessBtn.textContent = "Probar";
+        guessBtn.onclick = handleGuess;
+
+        cracksOverlay.classList.remove('visible');
+
+        // Registrar inicio del juego en XAPI
+        gameStartTime = new Date();
+        if (xapiManager) {
+            xapiManager.gameStarted().catch(error => {
+                console.warn('No se pudo registrar el inicio del juego en XAPI:', error);
+            });
+        }
+
+        const availableRunes = [...RUNES];
+        for (let i = 0; i < CODE_LENGTH; i++) {
+            const randomIndex = Math.floor(Math.random() * availableRunes.length);
+            secretCode.push(availableRunes.splice(randomIndex, 1)[0]);
+        }
+        
+        guessesContainer.innerHTML = '';
+        createGuessingRows();
+        createRunePalette();
+        updateActiveRow();
+        updatePaletteState();
+    }
+    
+    function createGuessingRows() {
+        for (let i = 0; i < MAX_GUESSES; i++) {
+            const row = document.createElement('div');
+            row.className = 'flex items-center justify-center space-x-1';
+            row.dataset.rowIndex = i;
+            
+            const guessSlotsHTML = Array.from({ length: CODE_LENGTH }, () => `<div class="guess-slot"></div>`).join('');
+            const feedbackHTML = `<div class="grid grid-cols-2 gap-0.5 ml-2">${Array.from({ length: CODE_LENGTH }, () => `<div class="feedback-peg peg-empty"></div>`).join('')}</div>`;
+            
+            row.innerHTML = `<div class="flex space-x-1">${guessSlotsHTML}</div>${feedbackHTML}`;
+            guessesContainer.appendChild(row);
+        }
+    }
+
+    function createRunePalette() {
+        runePalette.innerHTML = '';
+        RUNES.forEach(runeSVG => {
+            const btn = document.createElement('button');
+            btn.className = 'rune-btn';
+            btn.innerHTML = runeSVG;
+            btn.dataset.rune = runeSVG;
+            btn.addEventListener('click', () => addRuneToGuess(runeSVG));
+            runePalette.appendChild(btn);
+        });
+    }
+
+    function updatePaletteState() {
+        const paletteButtons = runePalette.querySelectorAll('[data-rune]');
+        paletteButtons.forEach(btn => {
+            btn.disabled = currentGuess.includes(btn.dataset.rune);
+        });
+    }
+
+    function addRuneToGuess(runeSVG) {
+        if (currentGuess.length < CODE_LENGTH) {
+            currentGuess.push(runeSVG);
+            updateCurrentGuessDisplay();
+            updatePaletteState();
+        }
+    }
+
+    function clearCurrentGuess() {
+        currentGuess = [];
+        updateCurrentGuessDisplay();
+        updatePaletteState();
+    }
+
+    function updateCurrentGuessDisplay() {
+        const activeRow = guessesContainer.querySelector(`[data-row-index='${currentRowIndex}']`);
+        if (!activeRow) return;
+        const slots = activeRow.querySelectorAll('.guess-slot');
+        slots.forEach((slot, index) => {
+            slot.innerHTML = currentGuess[index] || '';
+            slot.classList.toggle('filled', !!currentGuess[index]);
+        });
+    }
+
+    function handleGuess() {
+        if (currentGuess.length !== CODE_LENGTH) {
+            messageArea.textContent = "Elige 4 runas.";
+            return;
+        }
+        messageArea.textContent = "";
+
+        let correctPosition = 0, correctRune = 0;
+        const secretCopy = [...secretCode], guessCopy = [...currentGuess];
+
+        for (let i = guessCopy.length - 1; i >= 0; i--) {
+            if (guessCopy[i] === secretCopy[i]) {
+                correctPosition++;
+                guessCopy.splice(i, 1);
+                secretCopy.splice(i, 1);
+            }
+        }
+
+        for (let i = 0; i < guessCopy.length; i++) {
+            const foundIndex = secretCopy.indexOf(guessCopy[i]);
+            if (foundIndex !== -1) {
+                correctRune++;
+                secretCopy.splice(foundIndex, 1);
+            }
+        }
+        
+        displayFeedback(correctPosition, correctRune);
+
+        // Registrar intento en XAPI
+        if (xapiManager) {
+            xapiManager.attemptMade(currentRowIndex + 1, correctPosition, correctRune).catch(error => {
+                console.warn('No se pudo registrar el intento en XAPI:', error);
+            });
+        }
+
+        if (correctPosition === CODE_LENGTH) {
+            endGame(true);
+            return;
+        }
+        
+        currentRowIndex++;
+        if (currentRowIndex >= MAX_GUESSES) {
+            endGame(false);
+        } else {
+            currentGuess = [];
+            updateActiveRow();
+            updatePaletteState();
+        }
+    }
+
+    function displayFeedback(correctPosition, correctRune) {
+        const activeRow = guessesContainer.querySelector(`[data-row-index='${currentRowIndex}']`);
+        const pegs = activeRow.querySelectorAll('.feedback-peg');
+        pegs.forEach((peg, index) => {
+            peg.className = 'feedback-peg';
+            if(index < correctPosition) peg.classList.add('peg-correct');
+            else if (index < correctPosition + correctRune) peg.classList.add('peg-present');
+            else peg.classList.add('peg-empty');
+        });
+    }
+
+    function endGame(isWin) {
+        guessBtn.disabled = true;
+        clearBtn.disabled = true;
+        runePalette.querySelectorAll('[data-rune]').forEach(btn => btn.disabled = true);
+
+        // Calcular tiempo transcurrido
+        gameEndTime = new Date();
+        const timeSpent = gameEndTime - gameStartTime;
+        const timeSpentISO = `PT${Math.floor(timeSpent / 1000)}S`;
+
+        if (isWin) {
+            messageArea.textContent = "¡Combinación correcta!";
+            messageArea.style.color = '#86efac';
+            winSound.play().catch(e => console.log("No se pudo reproducir el sonido de victoria."));
+            triggerConfetti();
+            
+            // Registrar victoria en XAPI
+            if (xapiManager) {
+                xapiManager.gamePassed(currentRowIndex + 1, timeSpentISO).catch(error => {
+                    console.warn('No se pudo registrar la victoria en XAPI:', error);
+                });
+            }
+        } else {
+            messageArea.textContent = "Has fallado.";
+            messageArea.style.color = '#f87171';
+            loseSound.play().catch(e => console.log("No se pudo reproducir el sonido de derrota."));
+            triggerExplosion();
+            
+            // Registrar derrota en XAPI
+            if (xapiManager) {
+                xapiManager.gameFailed(timeSpentISO).catch(error => {
+                    console.warn('No se pudo registrar la derrota en XAPI:', error);
+                });
+            }
+            
+            setTimeout(() => {
+                const secretDisplay = document.createElement('div');
+                secretDisplay.className = 'flex justify-center space-x-1 mt-2';
+                secretDisplay.innerHTML = secretCode.map(rune => `<div class="guess-slot revealed-slot">${rune}</div>`).join('');
+                guessesContainer.appendChild(secretDisplay);
+            }, 820);
+        }
+
+        // Registrar finalización del juego
+        if (xapiManager) {
+            xapiManager.gameCompleted(isWin, timeSpentISO).catch(error => {
+                console.warn('No se pudo registrar la finalización en XAPI:', error);
+            });
+        }
+
+        guessBtn.textContent = "De Nuevo";
+        guessBtn.disabled = false;
+        guessBtn.onclick = initGame;
+    }
+    
+    // --- Funciones de Animación ---
+    function triggerConfetti() {
+        const duration = 3 * 1000;
+        const animationEnd = Date.now() + duration;
+        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
+
+        function randomInRange(min, max) { return Math.random() * (max - min) + min; }
+
+        const interval = setInterval(function() {
+            const timeLeft = animationEnd - Date.now();
+            if (timeLeft <= 0) return clearInterval(interval);
+            
+            const particleCount = 50 * (timeLeft / duration);
+            confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+            confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+        }, 250);
+    }
+
+    function triggerExplosion() {
+        mainContainer.classList.add('shake');
+        cracksOverlay.classList.add('visible');
+
+        const flash = document.createElement('div');
+        flash.className = 'explosion-flash';
+        document.body.appendChild(flash);
+
+        setTimeout(() => {
+            mainContainer.classList.remove('shake');
+            if (document.body.contains(flash)) {
+                document.body.removeChild(flash);
+            }
+        }, 820);
+    }
+
+    function updateActiveRow() {
+        document.querySelectorAll('[data-row-index]').forEach(row => {
+            row.style.backgroundColor = 'transparent';
+        });
+        const activeRow = guessesContainer.querySelector(`[data-row-index='${currentRowIndex}']`);
+        if (activeRow) {
+            activeRow.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+        }
+    }
+
+    // --- Arranque del Juego ---
+    initGame();
+    clearBtn.addEventListener('click', clearCurrentGuess);
+    guessBtn.addEventListener('click', handleGuess);
+});
+</script>
+</body>
+</html>
