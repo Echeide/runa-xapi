@@ -13,12 +13,12 @@ const XAPI_CONFIG = {
     
     // Endpoint por defecto para entornos personalizados
     endpoint: window.parent !== window ? 
-        'https://parent-system.com/xapi-endpoint' : // Si está en iframe
+        'https://192.168.1.35:3600/xapi' : // Si está en iframe (usar IP del sistema padre)
         'https://your-lrs-endpoint.com/data/xAPI',   // Si está standalone
     
     // Credenciales - pueden ser configuradas por el sistema padre
-    username: 'iframe-user',
-    password: 'iframe-pass',
+    username: 'demo-user',
+    password: 'demo-pass',
     
     // === INFORMACIÓN DEL USUARIO ===
     actor: {
@@ -32,6 +32,9 @@ const XAPI_CONFIG = {
     activityDescription: 'Juego de combinación de runas vikingas',
     
     // === CONFIGURACIÓN ESPECÍFICA PARA IFRAME ===
+    
+    // Habilitar/deshabilitar XAPI (útil para desarrollo)
+    enabled: true,
     
     // Habilitar comunicación con el sistema padre
     enableParentCommunication: true,
@@ -71,7 +74,8 @@ function detectParentConfiguration() {
             return true;
         }
     } catch (error) {
-        console.log('No se pudo acceder a la configuración del sistema padre:', error.message);
+        console.log('No se pudo acceder a la configuración del sistema padre (CORS):', error.message);
+        // No es un error crítico, continuamos con la configuración por defecto
     }
     
     return false;
@@ -153,6 +157,7 @@ function loadXAPIConfigFromURL() {
     // Parámetros básicos
     if (urlParams.has('xapi_endpoint')) {
         XAPI_CONFIG.endpoint = urlParams.get('xapi_endpoint');
+        console.log('Endpoint XAPI configurado desde URL:', XAPI_CONFIG.endpoint);
     }
     
     if (urlParams.has('xapi_user')) {
@@ -173,6 +178,7 @@ function loadXAPIConfigFromURL() {
     
     if (urlParams.has('xapi_enabled')) {
         XAPI_CONFIG.enabled = urlParams.get('xapi_enabled') === 'true';
+        console.log('XAPI habilitado desde URL:', XAPI_CONFIG.enabled);
     }
     
     // Parámetros específicos para iframe
@@ -186,6 +192,17 @@ function loadXAPIConfigFromURL() {
     
     if (urlParams.has('debug')) {
         XAPI_CONFIG.debug = urlParams.get('debug') === 'true';
+    }
+    
+    // Configuración específica para el entorno actual
+    if (window.location.hostname === 'routingtales.com') {
+        // Configuración específica para routingtales.com
+        XAPI_CONFIG.endpoint = 'https://192.168.1.35:3600/xapi';
+        XAPI_CONFIG.username = 'routingtales-user';
+        XAPI_CONFIG.password = 'routingtales-pass';
+        XAPI_CONFIG.actor.name = 'Usuario RoutingTales';
+        XAPI_CONFIG.actor.mbox = 'mailto:usuario@routingtales.com';
+        console.log('Configuración específica para RoutingTales aplicada');
     }
 }
 
