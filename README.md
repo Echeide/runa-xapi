@@ -6,8 +6,7 @@ Juego de combinación de runas vikingas con integración completa H5P y xAPI par
 
 ### Archivos Principales
 - `test-xapi.html` - **Archivo de pruebas principal** para testear actividades H5P
-- `index.html` - **Juego principal** con integración H5P completa
-- `game-xapi.html` - **Juego de Combinación Rúnica** con protocolo XAPI integrado
+- `index.html` - **Juego de Combinación Rúnica** con protocolo XAPI integrado
 - `h5p-xapi-manager.js` - Manager XAPI específico para H5P
 - `package.json` - Metadatos del proyecto
 
@@ -34,9 +33,9 @@ open test-xapi.html
 - ✅ Modo debug integrado
 - ✅ Funciones de prueba manual
 
-### 2. Juego Principal (`index.html`)
+### 2. Juego de Combinación Rúnica (`index.html`)
 
-Juego completo con integración H5P:
+Juego específico de combinación de runas con protocolo XAPI:
 
 ```bash
 # Abrir en navegador
@@ -44,28 +43,12 @@ open index.html
 ```
 
 **Características:**
-- ✅ Juego de combinación de runas completo
-- ✅ Integración H5P nativa
-- ✅ Tracking xAPI automático
-- ✅ Comunicación con sistemas padre
-- ✅ Indicador de estado XAPI en tiempo real
-
-### 3. Juego de Combinación Rúnica (`game-xapi.html`)
-
-Juego específico de combinación de runas con protocolo XAPI:
-
-```bash
-# Abrir en navegador
-open game-xapi.html
-```
-
-**Características:**
 - ✅ Juego de combinación de runas vikingas
 - ✅ Protocolo XAPI completo integrado
 - ✅ Eventos PASSED y FAILED automáticos
 - ✅ Tracking de intentos y tiempo
-- ✅ Indicador de estado XAPI en tiempo real
 - ✅ Animaciones de victoria y derrota
+- ✅ Delay de 2 segundos para mostrar combinación correcta
 
 ## 🔧 Configuración
 
