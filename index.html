@@ -213,9 +213,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // Inicializar XAPI Manager
     let xapiManager = null;
     if (XAPI_CONFIG.enabled) {
-        xapiManager = new XAPIManagerIframe(XAPI_CONFIG);
-        console.log('XAPI habilitado:', XAPI_CONFIG.endpoint);
-        updateXAPIStatus('connected');
+        try {
+            // Intentar usar XAPIManagerIframe si está disponible
+            if (typeof XAPIManagerIframe !== 'undefined') {
+                xapiManager = new XAPIManagerIframe(XAPI_CONFIG);
+                console.log('XAPI Iframe Manager inicializado:', XAPI_CONFIG.endpoint);
+            } else if (typeof XAPIManager !== 'undefined') {
+                xapiManager = new XAPIManager(XAPI_CONFIG);
+                console.log('XAPI Manager básico inicializado:', XAPI_CONFIG.endpoint);
+            } else {
+                throw new Error('XAPIManager no está disponible');
+            }
+            updateXAPIStatus('connected');
+        } catch (error) {
+            console.error('Error inicializando XAPI Manager:', error);
+            xapiManager = null;
+            updateXAPIStatus('disconnected');
+        }
     } else {
         console.log('XAPI deshabilitado');
         updateXAPIStatus('disconnected');
@@ -273,10 +287,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Registrar inicio del juego en XAPI
         gameStartTime = new Date();
-        if (xapiManager) {
+        if (xapiManager && typeof xapiManager.gameStarted === 'function') {
             xapiManager.gameStarted().catch(error => {
                 console.warn('No se pudo registrar el inicio del juego en XAPI:', error);
             });
+        } else if (xapiManager) {
+            console.warn('XAPI Manager disponible pero método gameStarted no encontrado');
         }
 
         const availableRunes = [...RUNES];
@@ -378,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
         displayFeedback(correctPosition, correctRune);
 
         // Registrar intento en XAPI
-        if (xapiManager) {
+        if (xapiManager && typeof xapiManager.attemptMade === 'function') {
             xapiManager.attemptMade(currentRowIndex + 1, correctPosition, correctRune).catch(error => {
                 console.warn('No se pudo registrar el intento en XAPI:', error);
             });
@@ -427,7 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
             triggerConfetti();
             
             // Registrar victoria en XAPI
-            if (xapiManager) {
+            if (xapiManager && typeof xapiManager.gamePassed === 'function') {
                 xapiManager.gamePassed(currentRowIndex + 1, timeSpentISO).catch(error => {
                     console.warn('No se pudo registrar la victoria en XAPI:', error);
                 });
@@ -439,7 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
             triggerExplosion();
             
             // Registrar derrota en XAPI
-            if (xapiManager) {
+            if (xapiManager && typeof xapiManager.gameFailed === 'function') {
                 xapiManager.gameFailed(timeSpentISO).catch(error => {
                     console.warn('No se pudo registrar la derrota en XAPI:', error);
                 });
@@ -454,7 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Registrar finalización del juego
-        if (xapiManager) {
+        if (xapiManager && typeof xapiManager.gameCompleted === 'function') {
             xapiManager.gameCompleted(isWin, timeSpentISO).catch(error => {
                 console.warn('No se pudo registrar la finalización en XAPI:', error);
             });
