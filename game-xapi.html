@@ -3,18 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Combinación Rúnica - Versión Iframe</title>
+    <title>Combinación Rúnica - Con XAPI</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=MedievalSharp&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
-    <script src="xapi-config.js"></script>
-    <script src="xapi.js"></script>
+    
+    <!-- Sistema H5P XAPI -->
+    <script src="XAPI_samples/h5p-events.js"></script>
+    <script src="XAPI_samples/h5p-xapi-events.js"></script>
+    <script src="h5p-xapi-manager.js"></script>
+    
     <style>
         html, body {
             height: 100%;
-            overflow: hidden;
+            overflow: hidden; /* Previene el scroll */
             background-color: #2c1f1f;
         }
         body {
@@ -30,7 +34,7 @@
         .rune-btn, .guess-slot {
             background-color: rgba(10, 5, 5, 0.4);
             border: 2px solid #6b4f4f;
-            width: 48px;
+            width: 48px; /* Reducido para encajar mejor */
             height: 48px;
             display: flex;
             justify-content: center;
@@ -60,6 +64,7 @@
             stroke-width: 1.5;
             transition: stroke 0.2s;
         }
+        /* Estilo para las runas reveladas en caso de derrota */
         .revealed-slot {
             background-color: #e0d1b1;
             border-color: #2c1f1f;
@@ -77,6 +82,7 @@
         .peg-present { background-color: #fde047; }
         .peg-empty { background-color: rgba(0,0,0,0.2); }
         
+        /* Animación de temblor para derrota */
         @keyframes shake {
           10%, 90% { transform: translate3d(-1px, 0, 0); }
           20%, 80% { transform: translate3d(2px, 0, 0); }
@@ -87,6 +93,7 @@
           animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
         }
 
+        /* Animación de explosión (flash) */
         @keyframes flash {
           0% { opacity: 1; }
           100% { opacity: 0; }
@@ -103,13 +110,14 @@
             pointer-events: none;
         }
 
+        /* Overlay para la pantalla rota */
         .cracks-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: 9998;
+            z-index: 9998; /* Justo debajo del flash */
             pointer-events: none;
             opacity: 0;
             transition: opacity 0.2s;
@@ -122,27 +130,11 @@
             stroke-width: 0.2;
         }
 
-        /* Indicador de estado XAPI */
-        .xapi-status {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            padding: 5px 10px;
-            border-radius: 3px;
-            font-size: 12px;
-            z-index: 10000;
-        }
-        .xapi-connected { background: #d4edda; color: #155724; }
-        .xapi-disconnected { background: #f8d7da; color: #721c24; }
-        .xapi-paused { background: #fff3cd; color: #856404; }
+
     </style>
 </head>
 <body class="text-gray-300">
 
-    <!-- Indicador de estado XAPI -->
-    <div id="xapi-status" class="xapi-status xapi-disconnected">
-        XAPI: Desconectado
-    </div>
 
     <div id="cracks-overlay" class="cracks-overlay">
         <svg width="100%" height="100%" preserveAspectRatio="none">
@@ -207,32 +199,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const MAX_GUESSES = 8;
 
     // --- Configuración XAPI ---
-    // La configuración se carga desde xapi-config.js
-    // Incluye detección automática del sistema padre
+    const XAPI_CONFIG = {
+        endpoint: 'https://192.168.1.35:3600/xapi',
+        username: 'routingtales-user',
+        password: 'routingtales-pass',
+        actor: {
+            name: "Usuario RoutingTales",
+            mbox: "mailto:usuario@routingtales.com"
+        },
+        activityId: 'urn:uuid:combinacion-runica-game',
+        activityName: 'Combinación Rúnica',
+        activityDescription: 'Juego de combinación de runas vikingas'
+    };
     
-    // Inicializar XAPI Manager
+    // Detectar si estamos en un iframe
+    const isInIframe = window.parent !== window;
+    console.log('🔍 Detectado iframe:', isInIframe);
+    
+    // Inicializar XAPI Manager solo si no estamos en iframe
     let xapiManager = null;
-    if (XAPI_CONFIG.enabled) {
+    if (!isInIframe) {
         try {
-            // Intentar usar XAPIManagerIframe si está disponible
-            if (typeof XAPIManagerIframe !== 'undefined') {
-                xapiManager = new XAPIManagerIframe(XAPI_CONFIG);
-                console.log('XAPI Iframe Manager inicializado:', XAPI_CONFIG.endpoint);
-            } else if (typeof XAPIManager !== 'undefined') {
-                xapiManager = new XAPIManager(XAPI_CONFIG);
-                console.log('XAPI Manager básico inicializado:', XAPI_CONFIG.endpoint);
-            } else {
-                throw new Error('XAPIManager no está disponible');
-            }
-            updateXAPIStatus('connected');
+            xapiManager = new H5PXAPIManager(XAPI_CONFIG);
+            console.log('XAPI Manager inicializado:', XAPI_CONFIG.endpoint);
         } catch (error) {
             console.error('Error inicializando XAPI Manager:', error);
-            xapiManager = null;
-            updateXAPIStatus('disconnected');
         }
     } else {
-        console.log('XAPI deshabilitado');
-        updateXAPIStatus('disconnected');
+        console.log('📡 Ejecutándose en iframe - usando comunicación con sistema padre');
     }
 
     // --- Efectos de Sonido ---
@@ -252,47 +246,72 @@ document.addEventListener('DOMContentLoaded', () => {
     let secretCode = [], currentGuess = [], currentRowIndex = 0;
     let gameStartTime = null;
     let gameEndTime = null;
+    let attemptsCount = 0;
 
-    // --- Funciones de Estado XAPI ---
-    function updateXAPIStatus(status) {
-        const statusElement = document.getElementById('xapi-status');
-        statusElement.className = 'xapi-status';
-        
-        switch (status) {
-            case 'connected':
-                statusElement.classList.add('xapi-connected');
-                statusElement.textContent = 'XAPI: Conectado';
-                break;
-            case 'disconnected':
-                statusElement.classList.add('xapi-disconnected');
-                statusElement.textContent = 'XAPI: Desconectado';
-                break;
-            case 'paused':
-                statusElement.classList.add('xapi-paused');
-                statusElement.textContent = 'XAPI: Pausado';
-                break;
+    // --- Funciones de Comunicación con Sistema Padre ---
+    function sendToParent(eventType, data = {}) {
+        if (isInIframe && window.parent) {
+            console.log(`📤 Enviando evento al sistema padre: ${eventType}`, data);
+            window.parent.postMessage({
+                context: "h5p",
+                action: "xAPI",
+                statement: {
+                    verb: {
+                        id: `http://adlnet.gov/expapi/verbs/${eventType}`,
+                        display: { "en-US": eventType }
+                    },
+                    object: {
+                        id: XAPI_CONFIG.activityId,
+                        definition: {
+                            name: { "en-US": XAPI_CONFIG.activityName },
+                            description: { "en-US": XAPI_CONFIG.activityDescription }
+                        }
+                    },
+                    result: data
+                }
+            }, "*");
         }
     }
 
+    function sendH5PEvent(eventType) {
+        if (isInIframe && window.parent) {
+            console.log(`📤 Enviando evento H5P: ${eventType}`);
+            window.parent.postMessage({
+                type: `H5P_${eventType}`,
+                context: "h5p"
+            }, "*");
+        }
+    }
+
+
     function initGame() {
         secretCode = []; currentGuess = []; currentRowIndex = 0;
+        attemptsCount = 0;
         messageArea.textContent = '';
         messageArea.style.color = '';
         guessBtn.disabled = false;
         clearBtn.disabled = false;
         guessBtn.textContent = "Probar";
-        guessBtn.onclick = handleGuess;
+        // Removido onclick para evitar duplicación con addEventListener
+
+        console.log('🎮 Inicializando juego...');
+        console.log('🔘 Botón Probar configurado:', {
+            disabled: guessBtn.disabled,
+            textContent: guessBtn.textContent,
+            onclick: 'removido (usando addEventListener)'
+        });
 
         cracksOverlay.classList.remove('visible');
 
         // Registrar inicio del juego en XAPI
         gameStartTime = new Date();
-        if (xapiManager && typeof xapiManager.gameStarted === 'function') {
-            xapiManager.gameStarted().catch(error => {
-                console.warn('No se pudo registrar el inicio del juego en XAPI:', error);
-            });
-        } else if (xapiManager) {
-            console.warn('XAPI Manager disponible pero método gameStarted no encontrado');
+        if (isInIframe) {
+            sendToParent('initialized');
+            sendH5PEvent('STARTED');
+            console.log('🎮 Juego iniciado - Eventos enviados al sistema padre');
+        } else if (xapiManager && typeof xapiManager.gameStarted === 'function') {
+            xapiManager.gameStarted();
+            console.log('🎮 Juego iniciado - Evento XAPI disparado');
         }
 
         const availableRunes = [...RUNES];
@@ -335,10 +354,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updatePaletteState() {
+        console.log(`🎨 Actualizando estado de la paleta. Combinación actual: ${currentGuess.length} runas`);
         const paletteButtons = runePalette.querySelectorAll('[data-rune]');
+        console.log(`🎨 Encontrados ${paletteButtons.length} botones de runas`);
+        
         paletteButtons.forEach(btn => {
             btn.disabled = currentGuess.includes(btn.dataset.rune);
         });
+        
+        const enabledButtons = paletteButtons.length - currentGuess.length;
+        console.log(`🎨 Paleta actualizada. Botones habilitados: ${enabledButtons}`);
     }
 
     function addRuneToGuess(runeSVG) {
@@ -366,11 +391,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleGuess() {
+        console.log('🎯 Iniciando handleGuess...');
+        console.log('📊 Estado antes del intento:', {
+            currentGuessLength: currentGuess.length,
+            currentRowIndex: currentRowIndex,
+            attemptsCount: attemptsCount
+        });
+
         if (currentGuess.length !== CODE_LENGTH) {
             messageArea.textContent = "Elige 4 runas.";
+            console.log('❌ Combinación incompleta, faltan runas');
             return;
         }
         messageArea.textContent = "";
+        console.log('✅ Combinación completa, procesando...');
+
+        attemptsCount++;
+        console.log(`🔢 Intento número: ${attemptsCount}`);
 
         let correctPosition = 0, correctRune = 0;
         const secretCopy = [...secretCode], guessCopy = [...currentGuess];
@@ -391,39 +428,79 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
+        console.log(`📈 Resultado: ${correctPosition} posición correcta, ${correctRune} runa correcta`);
         displayFeedback(correctPosition, correctRune);
 
         // Registrar intento en XAPI
-        if (xapiManager && typeof xapiManager.attemptMade === 'function') {
-            xapiManager.attemptMade(currentRowIndex + 1, correctPosition, correctRune).catch(error => {
-                console.warn('No se pudo registrar el intento en XAPI:', error);
+        if (isInIframe) {
+            console.log('📤 Enviando evento de intento al sistema padre...');
+            sendToParent('attempted', {
+                score: { raw: correctPosition + correctRune, max: 4 },
+                completion: false,
+                success: false,
+                'http://adlnet.gov/expapi/extension/guess-number': attemptsCount,
+                'http://adlnet.gov/expapi/extension/correct-position': correctPosition,
+                'http://adlnet.gov/expapi/extension/correct-rune': correctRune
             });
+            console.log('✅ Evento de intento enviado al sistema padre');
+        } else if (xapiManager && typeof xapiManager.attemptMade === 'function') {
+            console.log('📤 Enviando evento XAPI...');
+            try {
+                xapiManager.attemptMade(attemptsCount, correctPosition, correctRune);
+                console.log('✅ Evento XAPI enviado correctamente');
+            } catch (error) {
+                console.error('❌ Error enviando evento XAPI:', error);
+            }
+        } else {
+            console.log('⚠️ XAPI Manager no disponible');
         }
 
+        console.log('🔄 Verificando resultado del intento...');
         if (correctPosition === CODE_LENGTH) {
+            console.log('🎉 ¡VICTORIA! Combinación correcta');
             endGame(true);
             return;
         }
         
+        console.log('🔄 No es la combinación correcta, continuando...');
+        console.log(`📊 Estado antes de avanzar: currentRowIndex=${currentRowIndex}, attemptsCount=${attemptsCount}`);
+        
         currentRowIndex++;
+        console.log(`🔄 Intento ${attemptsCount} completado. Siguiente fila: ${currentRowIndex}`);
+        
         if (currentRowIndex >= MAX_GUESSES) {
+            console.log('❌ Máximo de intentos alcanzado');
             endGame(false);
         } else {
+            console.log('✅ Preparando siguiente intento...');
+            console.log('🧹 Limpiando combinación actual...');
             currentGuess = [];
+            console.log('🧹 Combinación actual limpiada');
+            console.log('📍 Actualizando fila activa...');
             updateActiveRow();
+            console.log('🎨 Actualizando estado de paleta...');
             updatePaletteState();
+            console.log('🎯 Listo para siguiente combinación');
+            console.log(`📊 Estado final: currentRowIndex=${currentRowIndex}, currentGuess.length=${currentGuess.length}`);
         }
     }
 
     function displayFeedback(correctPosition, correctRune) {
+        console.log(`🎨 Mostrando feedback: ${correctPosition} posición correcta, ${correctRune} runa correcta`);
         const activeRow = guessesContainer.querySelector(`[data-row-index='${currentRowIndex}']`);
+        if (!activeRow) {
+            console.log(`❌ No se encontró la fila activa ${currentRowIndex}`);
+            return;
+        }
         const pegs = activeRow.querySelectorAll('.feedback-peg');
+        console.log(`🎨 Encontrados ${pegs.length} pegs para actualizar`);
         pegs.forEach((peg, index) => {
             peg.className = 'feedback-peg';
             if(index < correctPosition) peg.classList.add('peg-correct');
             else if (index < correctPosition + correctRune) peg.classList.add('peg-present');
             else peg.classList.add('peg-empty');
         });
+        console.log('✅ Feedback mostrado correctamente');
     }
 
     function endGame(isWin) {
@@ -443,10 +520,20 @@ document.addEventListener('DOMContentLoaded', () => {
             triggerConfetti();
             
             // Registrar victoria en XAPI
-            if (xapiManager && typeof xapiManager.gamePassed === 'function') {
-                xapiManager.gamePassed(currentRowIndex + 1, timeSpentISO).catch(error => {
-                    console.warn('No se pudo registrar la victoria en XAPI:', error);
+            if (isInIframe) {
+                console.log('📤 Enviando evento de victoria al sistema padre...');
+                sendToParent('passed', {
+                    score: { raw: 100, max: 100 },
+                    completion: true,
+                    success: true,
+                    'http://adlnet.gov/expapi/extension/attempts': attemptsCount,
+                    'http://adlnet.gov/expapi/extension/time-spent': timeSpentISO
                 });
+                sendH5PEvent('PASSED');
+                console.log('✅ Evento de victoria enviado al sistema padre');
+            } else if (xapiManager && typeof xapiManager.gamePassed === 'function') {
+                xapiManager.gamePassed(attemptsCount, timeSpentISO);
+                console.log('Victoria registrada - Evento XAPI PASSED disparado');
             }
         } else {
             messageArea.textContent = "Has fallado.";
@@ -454,26 +541,50 @@ document.addEventListener('DOMContentLoaded', () => {
             loseSound.play().catch(e => console.log("No se pudo reproducir el sonido de derrota."));
             triggerExplosion();
             
-            // Registrar derrota en XAPI
-            if (xapiManager && typeof xapiManager.gameFailed === 'function') {
-                xapiManager.gameFailed(timeSpentISO).catch(error => {
-                    console.warn('No se pudo registrar la derrota en XAPI:', error);
-                });
-            }
+            console.log('⏳ Esperando 2 segundos antes de enviar evento de derrota para permitir ver la combinación...');
+            
+            // Registrar derrota en XAPI con delay para permitir ver la combinación
+            setTimeout(() => {
+                if (isInIframe) {
+                    console.log('📤 Enviando evento de derrota al sistema padre (después de delay)...');
+                    sendToParent('failed', {
+                        score: { raw: 0, max: 100 },
+                        completion: true,
+                        success: false,
+                        'http://adlnet.gov/expapi/extension/time-spent': timeSpentISO
+                    });
+                    sendH5PEvent('FAILED');
+                    console.log('✅ Evento de derrota enviado al sistema padre');
+                } else if (xapiManager && typeof xapiManager.gameFailed === 'function') {
+                    xapiManager.gameFailed(timeSpentISO);
+                    console.log('Derrota registrada - Evento XAPI FAILED disparado');
+                }
+            }, 2000); // Delay de 2 segundos
             
             setTimeout(() => {
+                console.log('🔍 Mostrando combinación correcta...');
                 const secretDisplay = document.createElement('div');
                 secretDisplay.className = 'flex justify-center space-x-1 mt-2';
                 secretDisplay.innerHTML = secretCode.map(rune => `<div class="guess-slot revealed-slot">${rune}</div>`).join('');
                 guessesContainer.appendChild(secretDisplay);
+                console.log('✅ Combinación correcta mostrada');
             }, 820);
         }
 
         // Registrar finalización del juego
-        if (xapiManager && typeof xapiManager.gameCompleted === 'function') {
-            xapiManager.gameCompleted(isWin, timeSpentISO).catch(error => {
-                console.warn('No se pudo registrar la finalización en XAPI:', error);
+        if (isInIframe) {
+            console.log('📤 Enviando evento de finalización al sistema padre...');
+            sendToParent('completed', {
+                score: { raw: isWin ? 100 : 0, max: 100 },
+                completion: true,
+                success: isWin,
+                'http://adlnet.gov/expapi/extension/time-spent': timeSpentISO
             });
+            sendH5PEvent('COMPLETED');
+            console.log('✅ Evento de finalización enviado al sistema padre');
+        } else if (xapiManager && typeof xapiManager.gameCompleted === 'function') {
+            xapiManager.gameCompleted(isWin, timeSpentISO);
+            console.log('Finalización registrada - Evento XAPI COMPLETED disparado');
         }
 
         guessBtn.textContent = "De Nuevo";
@@ -516,19 +627,108 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateActiveRow() {
-        document.querySelectorAll('[data-row-index]').forEach(row => {
+        console.log(`📍 Actualizando fila activa: ${currentRowIndex}`);
+        const allRows = document.querySelectorAll('[data-row-index]');
+        console.log(`📍 Encontradas ${allRows.length} filas en total`);
+        
+        allRows.forEach(row => {
             row.style.backgroundColor = 'transparent';
         });
+        
         const activeRow = guessesContainer.querySelector(`[data-row-index='${currentRowIndex}']`);
         if (activeRow) {
             activeRow.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+            console.log(`✅ Fila ${currentRowIndex} activada correctamente`);
+        } else {
+            console.log(`❌ No se encontró la fila ${currentRowIndex}`);
+            console.log(`❌ Filas disponibles:`, Array.from(allRows).map(row => row.dataset.rowIndex));
         }
     }
 
     // --- Arranque del Juego ---
     initGame();
     clearBtn.addEventListener('click', clearCurrentGuess);
-    guessBtn.addEventListener('click', handleGuess);
+    
+    // Verificar estado del botón antes de agregar el listener
+    console.log('🔘 Estado del botón Probar:', {
+        disabled: guessBtn.disabled,
+        textContent: guessBtn.textContent,
+        onclick: 'removido (usando addEventListener)'
+    });
+    
+    guessBtn.addEventListener('click', function(event) {
+        console.log('🖱️ Click en botón Probar detectado');
+        console.log('🔘 Estado del botón en el click:', {
+            disabled: guessBtn.disabled,
+            textContent: guessBtn.textContent
+        });
+        handleGuess();
+    });
+    
+    console.log('✅ Event listeners agregados correctamente');
+
+    // Funciones de prueba para debugging
+    window.debugGame = function() {
+        console.log('🔍 Estado actual del juego:');
+        console.log('- currentRowIndex:', currentRowIndex);
+        console.log('- currentGuess:', currentGuess);
+        console.log('- attemptsCount:', attemptsCount);
+        console.log('- secretCode:', secretCode);
+        console.log('- MAX_GUESSES:', MAX_GUESSES);
+    };
+
+    window.testNextAttempt = function() {
+        console.log('🧪 Simulando siguiente intento...');
+        currentGuess = [];
+        updateActiveRow();
+        updatePaletteState();
+    };
+
+    window.testClickProbar = function() {
+        console.log('🧪 Simulando click en botón Probar...');
+        console.log('🔘 Estado actual del botón:', {
+            disabled: guessBtn.disabled,
+            textContent: guessBtn.textContent,
+            onclick: 'removido (usando addEventListener)'
+        });
+        handleGuess();
+    };
+
+    window.forceNextAttempt = function() {
+        console.log('🧪 Forzando siguiente intento...');
+        console.log('📊 Estado actual:', {
+            currentRowIndex: currentRowIndex,
+            attemptsCount: attemptsCount,
+            currentGuessLength: currentGuess.length
+        });
+        
+        currentRowIndex++;
+        console.log(`🔄 Avanzando a fila: ${currentRowIndex}`);
+        
+        currentGuess = [];
+        console.log('🧹 Combinación limpiada');
+        
+        updateActiveRow();
+        updatePaletteState();
+        console.log('🎯 Siguiente intento preparado');
+    };
+
+    window.debugCurrentState = function() {
+        console.log('🔍 Estado actual del juego:');
+        console.log('- currentRowIndex:', currentRowIndex);
+        console.log('- attemptsCount:', attemptsCount);
+        console.log('- currentGuess:', currentGuess);
+        console.log('- currentGuess.length:', currentGuess.length);
+        console.log('- secretCode:', secretCode);
+        console.log('- MAX_GUESSES:', MAX_GUESSES);
+        console.log('- isInIframe:', isInIframe);
+        
+        const allRows = document.querySelectorAll('[data-row-index]');
+        console.log('- Filas disponibles:', Array.from(allRows).map(row => row.dataset.rowIndex));
+        
+        const paletteButtons = runePalette.querySelectorAll('[data-rune]');
+        console.log('- Botones de paleta:', paletteButtons.length);
+    };
 });
 </script>
 </body>

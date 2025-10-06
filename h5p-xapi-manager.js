@@ -1,6 +1,6 @@
 /**
  * Sistema XAPI compatible con H5P para Combinación Rúnica
- * Basado en los archivos h5p-event-dispatcher.js y h5p-x-api-event.js que funcionan
+ * Basado en los archivos h5p-events.js y h5p-xapi-events.js que funcionan
  */
 
 // Asegurar que H5P esté disponible
@@ -254,3 +254,4 @@ class H5PXAPIManager {
 
 // Exportar para uso global
 window.H5PXAPIManager = H5PXAPIManager;
+

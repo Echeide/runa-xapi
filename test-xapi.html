@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actividad H5P - Pruebas</title>
+    <style>
+        /* Variables CSS */
+        :root {
+            --color-primary: #007bff;
+            --color-primary-dark: #0056b3;
+            --mobile-vh: 100vh;
+            --safe-area-top: 0px;
+            --safe-area-bottom: 0px;
+            --safe-area-left: 0px;
+            --safe-area-right: 0px;
+        }
+
+        /* Reset básico */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f0f0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Modal de actividad */
+        .activity-modal {
+            position: fixed;
+            z-index: 10001;
+            top: 0;
+            left: calc(50% - min(50vw, 250px));
+            width: 100vw;
+            max-width: 500px;
+            height: 100vh;
+            height: 100dvh;
+            height: var(--mobile-vh);
+
+            touch-action: auto;
+            pointer-events: auto;
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .activity-modal.standalone-mode {
+            top: var(--safe-area-top, 0px);
+            height: calc(100vh - var(--safe-area-top, 0px));
+            height: calc(100dvh - var(--safe-area-top, 0px));
+            height: calc(var(--mobile-vh) - var(--safe-area-top, 0px));
+        }
+
+        /* Header del modal */
+        .header {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            box-sizing: border-box;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            background-color: #fff;
+            position: relative;
+            z-index: 1;
+        }
+
+        .close-btn {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 50%;
+            background-color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #666;
+            transition: background-color 0.2s ease;
+        }
+
+        .close-btn:hover {
+            background-color: #f0f0f0;
+        }
+
+        .close-btn.blink {
+            animation-name: blink;
+            animation-duration: 1s;
+            animation-iteration-count: infinite;
+        }
+
+        .title {
+            width: calc(100% - 120px);
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            color: #000;
+            font-size: 1.2rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 0 15px;
+            text-align: left;
+        }
+
+        /* Contenido del modal */
+        .content {
+            flex: 1 1 0;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        /* Actividad H5P */
+        .h5p-activity {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .description {
+            padding: 15px 20px;
+            margin: 0;
+            background: #f8f9fa;
+            color: #666;
+            font-size: 0.95rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .activity-content {
+            flex: 1;
+            position: relative;
+            min-height: 400px;
+            background: #f8f9fa;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #f8f9fa;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        iframe.loaded {
+            opacity: 1;
+        }
+
+        /* Spinner de carga */
+        .loading-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: #f8f9fa;
+            z-index: 10;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(0, 0, 0, 0.1);
+            border-top: 5px solid var(--color-primary, #007bff);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .loading-text {
+            color: #666;
+            font-size: 1.1rem;
+            margin: 0;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        /* Estado de error */
+        .error-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: #f8f9fa;
+            z-index: 1;
+            padding: 20px;
+        }
+
+        .error-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .error-text {
+            color: #dc3545;
+            font-size: 1rem;
+            margin: 0 0 20px 0;
+            text-align: center;
+        }
+
+        .retry-button {
+            background: var(--color-primary, #007bff);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .retry-button:hover {
+            background: var(--color-primary-dark, #0056b3);
+        }
+
+        /* Pantalla de fallo */
+        .fail-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10002;
+        }
+
+        .fail-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            max-width: 300px;
+            margin: 20px;
+        }
+
+        .fail-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .fail-title {
+            font-size: 1.5rem;
+            color: #dc3545;
+            margin-bottom: 15px;
+        }
+
+        .fail-message {
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .continue-button {
+            background: var(--color-primary, #007bff);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 24px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .continue-button:hover {
+            background: var(--color-primary-dark, #0056b3);
+        }
+
+        /* Pantalla de victoria */
+        .win-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10002;
+        }
+
+        .win-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            max-width: 300px;
+            margin: 20px;
+        }
+
+        .win-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .win-title {
+            font-size: 1.5rem;
+            color: #28a745;
+            margin-bottom: 15px;
+        }
+
+        .win-points {
+            font-size: 2rem;
+            color: var(--color-primary, #007bff);
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .win-message {
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .continue-win-button {
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 24px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .continue-win-button:hover {
+            background: #218838;
+        }
+
+        /* Debug info */
+        .debug-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            font-size: 12px;
+            z-index: 100;
+            border-radius: 4px;
+            max-width: 200px;
+        }
+
+        /* Botón de configuración */
+        .config-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: var(--color-primary, #007bff);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 15px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            z-index: 10000;
+        }
+
+        .config-button:hover {
+            background: var(--color-primary-dark, #0056b3);
+        }
+
+        /* Panel de configuración */
+        .config-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10003;
+        }
+
+        .config-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .config-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .form-group textarea {
+            height: 80px;
+            resize: vertical;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--color-primary, #007bff);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        /* Animaciones */
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                filter: invert(0);
+            }
+
+            50% {
+                filter: invert(1);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .description {
+                padding: 12px 15px;
+            }
+
+            .config-content {
+                margin: 20px;
+                width: calc(100% - 40px);
+            }
+        }
+
+        /* Ocultar elementos */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+    
+    <!-- Sistema H5P XAPI -->
+    <script src="XAPI_samples/h5p-events.js"></script>
+    <script src="XAPI_samples/h5p-xapi-events.js"></script>
+    <script src="h5p-xapi-manager.js"></script>
+</head>
+
+<body>
+    <!-- Botón de configuración -->
+    <button class="config-button" onclick="showConfig()">⚙️ Configurar</button>
+
+    <!-- Panel de configuración -->
+    <div id="configPanel" class="config-panel hidden">
+        <div class="config-content">
+            <h2 class="config-title">Configuración de Actividad H5P</h2>
+
+            <div class="form-group">
+                <label for="activityTitle">Título:</label>
+                <input type="text" id="activityTitle" value="Combinación Rúnica - Juego de Runas">
+            </div>
+
+            <div class="form-group">
+                <label for="activityDescription">Descripción:</label>
+                <textarea id="activityDescription">Adivina la secuencia correcta de 4 runas vikingas. Tienes 8 intentos para encontrar la combinación correcta.</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="h5pUrl">URL de H5P:</label>
+                <input type="url" id="h5pUrl" value="game-xapi.html">
+            </div>
+
+            <div class="form-group">
+                <label for="xapiSupport">Soporte xAPI:</label>
+                <select id="xapiSupport">
+                    <option value="true">Sí</option>
+                    <option value="false">No</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="winPoints">Puntos por completar:</label>
+                <input type="number" id="winPoints" value="100" min="0">
+            </div>
+
+            <div class="form-group">
+                <label for="failPoints">Puntos por fallar:</label>
+                <input type="number" id="failPoints" value="0" min="0">
+            </div>
+
+            <div class="form-group">
+                <label for="showDebug">Mostrar información de debug:</label>
+                <select id="showDebug">
+                    <option value="false">No</option>
+                    <option value="true">Sí</option>
+                </select>
+            </div>
+
+            <div class="form-actions">
+                <button class="btn btn-secondary" onclick="hideConfig()">Cancelar</button>
+                <button class="btn btn-primary" onclick="applyConfig()">Aplicar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de actividad -->
+    <div id="activityModal" class="activity-modal">
+        <div class="header">
+            <button class="close-btn" onclick="closeActivity()">✕</button>
+            <div class="title" id="activityTitleDisplay">Combinación Rúnica - Juego de Runas</div>
+        </div>
+        <div class="content">
+            <div class="h5p-activity">
+                <p class="description" id="activityDescriptionDisplay">Adivina la secuencia correcta de 4 runas vikingas. Tienes 8 intentos para encontrar la combinación correcta.</p>
+
+                <div class="activity-content">
+                    <!-- Información de debug -->
+                    <div id="debugInfo" class="debug-info hidden">
+                        <strong>Debug Info:</strong><br>
+                        <span id="debugContent">Cargando...</span>
+                    </div>
+
+                    <!-- Spinner de carga -->
+                    <div id="loadingContainer" class="loading-container">
+                        <div class="spinner"></div>
+                        <p class="loading-text">Cargando actividad...</p>
+                    </div>
+
+                    <!-- Estado de error -->
+                    <div id="errorContainer" class="error-container hidden">
+                        <div class="error-icon">⚠️</div>
+                        <p class="error-text">Error al cargar la actividad</p>
+                        <button class="retry-button" onclick="retryLoad()">Reintentar</button>
+                    </div>
+
+                    <!-- Iframe de H5P -->
+                    <iframe id="h5pIframe" src="" title="Actividad H5P"
+                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
+                        allow="fullscreen; microphone; camera"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pantalla de fallo -->
+    <div id="failScreen" class="fail-screen hidden">
+        <div class="fail-content">
+            <div class="fail-icon">❌</div>
+            <h2 class="fail-title">¡Actividad Fallida!</h2>
+            <p class="fail-message">No has completado la actividad correctamente.</p>
+            <p class="fail-message">Puntos perdidos: <strong id="failPointsDisplay">0</strong></p>
+            <button class="continue-button" onclick="continueFromFail()">Continuar</button>
+        </div>
+    </div>
+
+    <!-- Pantalla de victoria -->
+    <div id="winScreen" class="win-screen hidden">
+        <div class="win-content">
+            <div class="win-icon">🎉</div>
+            <h2 class="win-title">¡Actividad Completada!</h2>
+            <div class="win-points" id="winPointsDisplay">+100</div>
+            <p class="win-message">Has completado la actividad exitosamente.</p>
+            <button class="continue-win-button" onclick="continueFromWin()">Continuar</button>
+        </div>
+    </div>
+
+    <script>
+        // Estado global de la aplicación
+        const AppState = {
+            // Configuración de la actividad
+            config: {
+                title: "Combinación Rúnica - Juego de Runas",
+                description: "Adivina la secuencia correcta de 4 runas vikingas. Tienes 8 intentos para encontrar la combinación correcta.",
+                h5pUrl: "game-xapi.html",
+                xapiSupport: true,
+                winPoints: 100,
+                failPoints: 0,
+                showDebug: false
+            },
+
+            // Estado de la actividad
+            activity: {
+                isCompleted: false,
+                isLoading: true,
+                iframeLoadError: false,
+                hasRespondedToHello: false,
+                xapiEventsReceived: 0,
+                userInteractionDetected: false,
+                iframeLoadTime: Date.now(),
+                lastActivityTime: Date.now(),
+                loadStartTime: Date.now(),
+                minimumLoadTime: 1000
+            },
+
+            // Referencias a elementos DOM
+            elements: {
+                activityModal: null,
+                h5pIframe: null,
+                loadingContainer: null,
+                errorContainer: null,
+                debugInfo: null,
+                failScreen: null,
+                winScreen: null,
+                configPanel: null
+            },
+
+            // Listeners y timeouts
+            listeners: {
+                xapiListener: null,
+                autoCompleteTimeout: null,
+                activityCheckInterval: null
+            }
+        };
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            // Obtener referencias a elementos DOM
+            AppState.elements.activityModal = document.getElementById('activityModal');
+            AppState.elements.h5pIframe = document.getElementById('h5pIframe');
+            AppState.elements.loadingContainer = document.getElementById('loadingContainer');
+            AppState.elements.errorContainer = document.getElementById('errorContainer');
+            AppState.elements.debugInfo = document.getElementById('debugInfo');
+            AppState.elements.failScreen = document.getElementById('failScreen');
+            AppState.elements.winScreen = document.getElementById('winScreen');
+            AppState.elements.configPanel = document.getElementById('configPanel');
+
+            // Configurar la actividad
+            setupActivity();
+
+            // Mostrar el modal de actividad
+            showActivity();
+        }
+
+        function setupActivity() {
+            const iframe = AppState.elements.h5pIframe;
+            const config = AppState.config;
+
+            // Configurar iframe
+            console.log('🔧 Configurando actividad con URL:', config.h5pUrl);
+            iframe.src = config.h5pUrl;
+            iframe.title = config.title;
+            console.log('🔧 Iframe configurado con src:', iframe.src);
+
+            // Actualizar UI
+            document.getElementById('activityTitleDisplay').textContent = config.title;
+            document.getElementById('activityDescriptionDisplay').textContent = config.description;
+
+            // Configurar según soporte xAPI
+            if (config.xapiSupport) {
+                setupXAPIListener();
+                setupActivityMonitoring();
+            }
+
+            setupIframeLoadDetection();
+
+            // Configurar debug
+            if (config.showDebug) {
+                AppState.elements.debugInfo.classList.remove('hidden');
+                updateDebugInfo();
+            }
+        }
+
+        function setupXAPIListener() {
+            AppState.listeners.xapiListener = function (event) {
+                const iframe = AppState.elements.h5pIframe;
+
+                // Verificar que el mensaje viene del iframe correcto
+                const isFromCorrectIframe = event.source === iframe.contentWindow;
+
+                // Validar origen (simplificado para pruebas)
+                if (!isFromCorrectIframe) {
+                    return;
+                }
+
+                try {
+                    const data = typeof event.data === "string"
+                        ? JSON.parse(event.data)
+                        : event.data;
+
+                    if (!data || typeof data !== "object") {
+                        return;
+                    }
+
+                    // Responder al protocolo de comunicación H5P
+                    if (data.context === "h5p" &&
+                        data.action === "hello" &&
+                        !AppState.activity.hasRespondedToHello) {
+
+                        AppState.activity.hasRespondedToHello = true;
+                        if (iframe.contentWindow) {
+                            iframe.contentWindow.postMessage(
+                                { context: "h5p", action: "ready" },
+                                "*"
+                            );
+                        }
+                        return;
+                    }
+
+                    // Procesar eventos xAPI de H5P
+                    if (data.context === "h5p" &&
+                        data.action === "xAPI" &&
+                        data.statement) {
+
+                        AppState.activity.xapiEventsReceived++;
+                        const statement = data.statement;
+                        
+                        console.log('📨 Evento xAPI recibido:', statement);
+
+                        // Verificar si es un evento de completado
+                        if (statement.verb && statement.verb.id) {
+                            const verbId = statement.verb.id;
+                            console.log('📨 Verb ID:', verbId);
+                            
+                            if (verbId.includes("passed")) {
+                                console.log('✅ Evento PASSED detectado');
+                                completeActivity(true);
+                                return;
+                            } else if (verbId.includes("failed")) {
+                                console.log('❌ Evento FAILED detectado');
+                                completeActivity(false);
+                                return;
+                            } else if (verbId.includes("completed")) {
+                                console.log('🔄 Evento COMPLETED detectado');
+                                // Para completed, verificar el resultado
+                                if (statement.result && statement.result.success === false) {
+                                    console.log('❌ COMPLETED con success=false');
+                                    completeActivity(false);
+                                    return;
+                                } else if (statement.result && statement.result.success === true) {
+                                    console.log('✅ COMPLETED con success=true');
+                                    completeActivity(true);
+                                    return;
+                                } else {
+                                    console.log('⚠️ COMPLETED sin success definido, asumiendo éxito');
+                                    completeActivity(true);
+                                    return;
+                                }
+                            }
+                        }
+
+                        // Verificar resultado en el statement
+                        if (statement.result) {
+                            console.log('📨 Resultado del statement:', statement.result);
+                            if (statement.result.completion === true) {
+                                if (statement.result.success === false) {
+                                    console.log('❌ Completion=true pero success=false');
+                                    completeActivity(false);
+                                    return;
+                                } else if (statement.result.success === true) {
+                                    console.log('✅ Completion=true y success=true');
+                                    completeActivity(true);
+                                    return;
+                                } else {
+                                    console.log('⚠️ Completion=true sin success definido');
+                                    completeActivity(true);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+
+                    // Procesar eventos de estado H5P directos
+                    if (data.type && data.type.startsWith("H5P_")) {
+                        AppState.activity.xapiEventsReceived++;
+                        console.log('📨 Evento H5P directo recibido:', data.type);
+                        
+                        switch (data.type) {
+                            case "H5P_PASSED":
+                                console.log('✅ H5P_PASSED detectado');
+                                completeActivity(true);
+                                return;
+                            case "H5P_FAILED":
+                                console.log('❌ H5P_FAILED detectado');
+                                completeActivity(false);
+                                return;
+                            case "H5P_COMPLETED":
+                                console.log('🔄 H5P_COMPLETED detectado');
+                                const timeSinceLoad = Date.now() - AppState.activity.iframeLoadTime;
+                                const hasRealInteraction = AppState.activity.userInteractionDetected && timeSinceLoad > 5000;
+                                console.log('🔄 Tiempo desde carga:', timeSinceLoad, 'Interacción detectada:', AppState.activity.userInteractionDetected);
+                                completeActivity(hasRealInteraction);
+                                return;
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Error procesando mensaje xAPI:', error);
+                }
+            };
+
+            window.addEventListener("message", AppState.listeners.xapiListener);
+        }
+
+        function setupActivityMonitoring() {
+            AppState.listeners.activityCheckInterval = setInterval(() => {
+                if (AppState.activity.isCompleted) {
+                    return;
+                }
+
+                if (AppState.activity.xapiEventsReceived > 0) {
+                    return;
+                }
+
+                // Timeout de seguridad: completar después de 5 minutos sin eventos
+                const timeSinceLoad = Date.now() - AppState.activity.iframeLoadTime;
+                if (timeSinceLoad > 5 * 60 * 1000) { // 5 minutos
+                    completeActivity(true);
+                }
+            }, 30000); // Verificar cada 30 segundos
+        }
+
+        function setupIframeLoadDetection() {
+            const iframe = AppState.elements.h5pIframe;
+
+            iframe.addEventListener("load", function () {
+                AppState.activity.lastActivityTime = Date.now();
+                AppState.activity.iframeLoadTime = Date.now();
+
+                // Asegurar que el spinner se muestre al menos el tiempo mínimo
+                const elapsedTime = Date.now() - AppState.activity.loadStartTime;
+                const remainingTime = Math.max(0, AppState.activity.minimumLoadTime - elapsedTime);
+
+                console.log("📥 Iframe load event - elapsed:", elapsedTime, "remaining:", remainingTime);
+                console.log("📥 Iframe cargado con src:", iframe.src);
+
+                setTimeout(() => {
+                    console.log("✅ Hiding spinner");
+                    AppState.activity.isLoading = false;
+                    AppState.activity.iframeLoadError = false;
+                    updateUI();
+                }, remainingTime);
+            });
+
+            iframe.addEventListener("error", function () {
+                AppState.activity.iframeLoadError = true;
+                AppState.activity.isLoading = false;
+                updateUI();
+
+                setTimeout(() => {
+                    if (!AppState.activity.isCompleted) {
+                        completeActivity(true);
+                    }
+                }, 5000);
+            });
+
+            // Detectar interacciones del usuario
+            const handleIframeInteraction = () => {
+                if (!AppState.activity.userInteractionDetected) {
+                    AppState.activity.userInteractionDetected = true;
+                    AppState.activity.lastActivityTime = Date.now();
+                }
+            };
+
+            iframe.addEventListener("click", handleIframeInteraction);
+            iframe.addEventListener("focus", handleIframeInteraction);
+            iframe.addEventListener("mouseenter", handleIframeInteraction);
+        }
+
+        function completeActivity(success = true) {
+            if (AppState.activity.isCompleted) return;
+
+            AppState.activity.isCompleted = true;
+
+            // Limpiar listeners
+            if (AppState.listeners.xapiListener) {
+                window.removeEventListener("message", AppState.listeners.xapiListener);
+            }
+            if (AppState.listeners.activityCheckInterval) {
+                clearInterval(AppState.listeners.activityCheckInterval);
+            }
+
+            if (success) {
+                // Mostrar pantalla de victoria
+                showWinScreen();
+            } else {
+                // Mostrar pantalla de fallo
+                showFailScreen();
+            }
+        }
+
+        function showActivity() {
+            AppState.elements.activityModal.style.display = 'flex';
+        }
+
+        function closeActivity() {
+            if (!AppState.activity.isCompleted) {
+                if (AppState.config.xapiSupport) {
+                    // Con xapiSupport: NO completar al cerrar, solo cerrar
+                    hideActivity();
+                } else {
+                    // Sin xapiSupport: Completar al cerrar
+                    completeActivity(true);
+                }
+            } else {
+                hideActivity();
+            }
+        }
+
+        function hideActivity() {
+            AppState.elements.activityModal.style.display = 'none';
+        }
+
+        function showFailScreen() {
+            document.getElementById('failPointsDisplay').textContent = AppState.config.failPoints;
+            AppState.elements.failScreen.classList.remove('hidden');
+        }
+
+        function showWinScreen() {
+            document.getElementById('winPointsDisplay').textContent = `+${AppState.config.winPoints}`;
+            AppState.elements.winScreen.classList.remove('hidden');
+        }
+
+        function continueFromFail() {
+            AppState.elements.failScreen.classList.add('hidden');
+            resetAndRestartActivity();
+        }
+
+        function continueFromWin() {
+            AppState.elements.winScreen.classList.add('hidden');
+            resetAndRestartActivity();
+        }
+
+        function resetAndRestartActivity() {
+            // Resetear estado del juego
+            AppState.activity = {
+                isCompleted: false,
+                isLoading: true,
+                iframeLoadError: false,
+                hasRespondedToHello: false,
+                xapiEventsReceived: 0,
+                userInteractionDetected: false,
+                iframeLoadTime: Date.now(),
+                lastActivityTime: Date.now(),
+                loadStartTime: Date.now(),
+                minimumLoadTime: 1000
+            };
+
+            // Limpiar listeners anteriores
+            if (AppState.listeners.xapiListener) {
+                window.removeEventListener("message", AppState.listeners.xapiListener);
+            }
+            if (AppState.listeners.activityCheckInterval) {
+                clearInterval(AppState.listeners.activityCheckInterval);
+            }
+
+            // Reconfigurar y reiniciar actividad
+            setupActivity();
+            updateUI();
+            
+            console.log('🔄 Actividad reiniciada');
+        }
+
+        function retryLoad() {
+            AppState.activity.isLoading = true;
+            AppState.activity.iframeLoadError = false;
+            AppState.activity.loadStartTime = Date.now();
+
+            const iframe = AppState.elements.h5pIframe;
+            iframe.src = iframe.src; // Recargar
+
+            updateUI();
+        }
+
+        function updateUI() {
+            const loadingContainer = AppState.elements.loadingContainer;
+            const errorContainer = AppState.elements.errorContainer;
+            const iframe = AppState.elements.h5pIframe;
+
+            if (AppState.activity.isLoading) {
+                loadingContainer.classList.remove('hidden');
+                errorContainer.classList.add('hidden');
+                iframe.classList.remove('loaded');
+            } else if (AppState.activity.iframeLoadError) {
+                loadingContainer.classList.add('hidden');
+                errorContainer.classList.remove('hidden');
+                iframe.classList.remove('loaded');
+            } else {
+                loadingContainer.classList.add('hidden');
+                errorContainer.classList.add('hidden');
+                iframe.classList.add('loaded');
+            }
+
+            if (AppState.config.showDebug) {
+                updateDebugInfo();
+            }
+        }
+
+        function updateDebugInfo() {
+            const debugContent = document.getElementById('debugContent');
+            debugContent.innerHTML = `
+                isLoading: ${AppState.activity.isLoading}<br>
+                iframeLoadError: ${AppState.activity.iframeLoadError}<br>
+                hasRespondedToHello: ${AppState.activity.hasRespondedToHello}<br>
+                xapiEventsReceived: ${AppState.activity.xapiEventsReceived}<br>
+                userInteractionDetected: ${AppState.activity.userInteractionDetected}<br>
+                isCompleted: ${AppState.activity.isCompleted}<br>
+                xapiSupport: ${AppState.config.xapiSupport}
+            `;
+        }
+
+        // Funciones de configuración
+        function showConfig() {
+            AppState.elements.configPanel.classList.remove('hidden');
+
+            // Cargar valores actuales
+            document.getElementById('activityTitle').value = AppState.config.title;
+            document.getElementById('activityDescription').value = AppState.config.description;
+            document.getElementById('h5pUrl').value = AppState.config.h5pUrl;
+            document.getElementById('xapiSupport').value = AppState.config.xapiSupport.toString();
+            document.getElementById('winPoints').value = AppState.config.winPoints;
+            document.getElementById('failPoints').value = AppState.config.failPoints;
+            document.getElementById('showDebug').value = AppState.config.showDebug.toString();
+        }
+
+        function hideConfig() {
+            AppState.elements.configPanel.classList.add('hidden');
+        }
+
+        function applyConfig() {
+            // Aplicar nueva configuración
+            AppState.config.title = document.getElementById('activityTitle').value;
+            AppState.config.description = document.getElementById('activityDescription').value;
+            AppState.config.h5pUrl = document.getElementById('h5pUrl').value;
+            AppState.config.xapiSupport = document.getElementById('xapiSupport').value === 'true';
+            AppState.config.winPoints = parseInt(document.getElementById('winPoints').value);
+            AppState.config.failPoints = parseInt(document.getElementById('failPoints').value);
+            AppState.config.showDebug = document.getElementById('showDebug').value === 'true';
+
+            // Limpiar estado anterior
+            if (AppState.listeners.xapiListener) {
+                window.removeEventListener("message", AppState.listeners.xapiListener);
+            }
+            if (AppState.listeners.activityCheckInterval) {
+                clearInterval(AppState.listeners.activityCheckInterval);
+            }
+
+            // Resetear estado
+            AppState.activity = {
+                isCompleted: false,
+                isLoading: true,
+                iframeLoadError: false,
+                hasRespondedToHello: false,
+                xapiEventsReceived: 0,
+                userInteractionDetected: false,
+                iframeLoadTime: Date.now(),
+                lastActivityTime: Date.now(),
+                loadStartTime: Date.now(),
+                minimumLoadTime: 1000
+            };
+
+            // Reconfigurar actividad
+            setupActivity();
+            updateUI();
+
+            hideConfig();
+        }
+
+        // Funciones de prueba (para testing manual)
+        window.testCompleteActivity = function (success = true) {
+            completeActivity(success);
+        };
+
+        window.testShowFailScreen = function () {
+            showFailScreen();
+        };
+
+        window.testShowWinScreen = function () {
+            showWinScreen();
+        };
+
+        window.testRetryLoad = function () {
+            retryLoad();
+        };
+
+        window.testRestartActivity = function () {
+            resetAndRestartActivity();
+        };
+
+        window.debugIframeContent = function() {
+            const iframe = AppState.elements.h5pIframe;
+            console.log('🔍 Debug del iframe:');
+            console.log('- src:', iframe.src);
+            console.log('- title:', iframe.title);
+            console.log('- config.h5pUrl:', AppState.config.h5pUrl);
+            console.log('- iframe.contentWindow:', iframe.contentWindow);
+            
+            try {
+                if (iframe.contentWindow) {
+                    console.log('- iframe.document.title:', iframe.contentWindow.document.title);
+                    console.log('- iframe.document.URL:', iframe.contentWindow.document.URL);
+                }
+            } catch (e) {
+                console.log('- Error accediendo al contenido del iframe:', e.message);
+            }
+        };
+
+        // Console helpers para debugging
+        console.log('🎮 H5P Activity Test Page loaded');
+        console.log('Available test functions:');
+        console.log('- testCompleteActivity(success)');
+        console.log('- testShowFailScreen()');
+        console.log('- testShowWinScreen()');
+        console.log('- testRetryLoad()');
+        console.log('- testRestartActivity()');
+        console.log('- debugIframeContent()');
+    </script>
+</body>
+
+</html>

@@ -1,141 +1,193 @@
-# 🎯 Combinación Rúnica - Integración XAPI para Iframe
+# 🎯 Combinación Rúnica - Sistema H5P con xAPI
 
-Juego de combinación de runas vikingas con integración XAPI optimizada para entornos personalizados que cargan la actividad a través de iframe.
+Juego de combinación de runas vikingas con integración completa H5P y xAPI para sistemas de aprendizaje.
 
 ## 📁 Archivos del Proyecto
 
-- `index.html` - Juego principal optimizado para iframe
-- `xapi-config.js` - Configuración XAPI con detección automática del sistema padre
-- `xapi.js` - Módulo XAPI con comunicación bidireccional
-- `parent-system-demo.html` - Ejemplo completo del sistema padre
-- `README.md` - Esta documentación
+### Archivos Principales
+- `test-xapi.html` - **Archivo de pruebas principal** para testear actividades H5P
+- `index.html` - **Juego principal** con integración H5P completa
+- `game-xapi.html` - **Juego de Combinación Rúnica** con protocolo XAPI integrado
+- `h5p-xapi-manager.js` - Manager XAPI específico para H5P
+- `package.json` - Metadatos del proyecto
+
+### Archivos H5P Core
+- `XAPI_samples/h5p-events.js` - Sistema de eventos H5P
+- `XAPI_samples/h5p-xapi-events.js` - Eventos XAPI para H5P
 
 ## 🚀 Uso Rápido
 
-### 1. En tu Sistema Personalizado
+### 1. Archivo de Pruebas (`test-xapi.html`)
 
-```html
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Mi Sistema</title>
-</head>
-<body>
-    <iframe id="game-iframe" 
-            src="index.html" 
-            width="100%" 
-            height="600" 
-            frameborder="0">
-    </iframe>
+Este es el archivo principal para testear actividades H5P:
 
-    <script>
-        // Configuración XAPI
-        const XAPI_CONFIG = {
-            endpoint: 'https://tu-lrs.com/xapi',
-            username: 'usuario',
-            password: 'password',
-            actor: {
-                name: "Usuario",
-                mbox: "mailto:usuario@ejemplo.com"
-            }
-        };
-
-        // Escuchar mensajes del iframe
-        window.addEventListener('message', function(event) {
-            if (event.data.type === 'REQUEST_XAPI_CONFIG') {
-                // Enviar configuración al juego
-                event.source.postMessage({
-                    type: 'XAPI_CONFIG',
-                    config: XAPI_CONFIG
-                }, '*');
-            }
-            
-            if (event.data.type === 'XAPI_EVENT') {
-                // Procesar eventos del juego
-                console.log('Evento:', event.data.eventType, event.data.data);
-            }
-        });
-    </script>
-</body>
-</html>
+```bash
+# Abrir en navegador
+open test-xapi.html
 ```
 
-### 2. Configuración por URL (Alternativa)
+**Características:**
+- ✅ Interfaz de configuración completa
+- ✅ Soporte para actividades H5P externas
+- ✅ Sistema de comunicación xAPI bidireccional
+- ✅ Pantallas de victoria/derrota personalizables
+- ✅ Modo debug integrado
+- ✅ Funciones de prueba manual
 
-```html
-<iframe src="index.html?xapi_endpoint=https://tu-lrs.com/xapi&xapi_user=usuario&xapi_pass=password"></iframe>
+### 2. Juego Principal (`index.html`)
+
+Juego completo con integración H5P:
+
+```bash
+# Abrir en navegador
+open index.html
 ```
+
+**Características:**
+- ✅ Juego de combinación de runas completo
+- ✅ Integración H5P nativa
+- ✅ Tracking xAPI automático
+- ✅ Comunicación con sistemas padre
+- ✅ Indicador de estado XAPI en tiempo real
+
+### 3. Juego de Combinación Rúnica (`game-xapi.html`)
+
+Juego específico de combinación de runas con protocolo XAPI:
+
+```bash
+# Abrir en navegador
+open game-xapi.html
+```
+
+**Características:**
+- ✅ Juego de combinación de runas vikingas
+- ✅ Protocolo XAPI completo integrado
+- ✅ Eventos PASSED y FAILED automáticos
+- ✅ Tracking de intentos y tiempo
+- ✅ Indicador de estado XAPI en tiempo real
+- ✅ Animaciones de victoria y derrota
+
+## 🔧 Configuración
+
+### Configuración en `test-xapi.html`
+
+Usa el botón "⚙️ Configurar" para ajustar:
+
+- **Título**: Nombre de la actividad
+- **Descripción**: Descripción para el usuario
+- **URL de H5P**: URL de la actividad H5P externa
+- **Soporte xAPI**: Habilitar/deshabilitar tracking
+- **Puntos**: Puntos por completar/fallar
+- **Debug**: Mostrar información de debug
+
+### Configuración XAPI
+
+El sistema se conecta automáticamente a:
+- **Endpoint**: `https://192.168.1.35:3600/xapi`
+- **Usuario**: `routingtales-user`
+- **Password**: `routingtales-pass`
 
 ## 📊 Eventos XAPI Disponibles
 
 | Evento | Descripción |
 |--------|-------------|
-| `GAME_STARTED` | Usuario comenzó a jugar |
-| `ATTEMPT_MADE` | Usuario hizo un intento |
-| `GAME_PASSED` | Usuario ganó el juego |
-| `GAME_FAILED` | Usuario perdió el juego |
-| `GAME_COMPLETED` | Juego terminó |
+| `initialized` | Actividad iniciada |
+| `attempted` | Intento realizado |
+| `passed` | Actividad completada exitosamente |
+| `failed` | Actividad fallida |
+| `completed` | Actividad terminada |
 
-## 🔧 Configuración
+## 🎮 Funciones de Prueba
 
-Edita `xapi-config.js` para personalizar:
+En `test-xapi.html`, puedes usar estas funciones en la consola:
 
 ```javascript
-const XAPI_CONFIG = {
-    // Endpoint de tu LRS
-    endpoint: 'https://tu-lrs.com/xapi',
-    
-    // Credenciales
-    username: 'usuario',
-    password: 'password',
-    
-    // Información del usuario
-    actor: {
-        name: "Nombre del Usuario",
-        mbox: "mailto:usuario@ejemplo.com"
-    },
-    
-    // Habilitar/deshabilitar XAPI
-    enabled: true,
-    
-    // Mostrar logs detallados
-    debug: false
-};
+// Completar actividad exitosamente
+testCompleteActivity(true);
+
+// Completar actividad con fallo
+testCompleteActivity(false);
+
+// Mostrar pantalla de fallo
+testShowFailScreen();
+
+// Mostrar pantalla de victoria
+testShowWinScreen();
+
+// Reintentar carga
+testRetryLoad();
 ```
 
-## 🎮 Comandos del Sistema Padre
+## 🔍 Debugging
 
-| Comando | Descripción |
-|---------|-------------|
-| `XAPI_CONFIG` | Enviar configuración XAPI |
-| `XAPI_PAUSE` | Pausar tracking |
-| `XAPI_RESUME` | Reanudar tracking |
-| `XAPI_RESET` | Reiniciar sesión |
+### Modo Debug en `test-xapi.html`
+
+1. Activa "Mostrar información de debug" en configuración
+2. Verás información en tiempo real:
+   - Estado de carga del iframe
+   - Eventos xAPI recibidos
+   - Interacciones del usuario
+   - Estado de completado
+
+### Logs en Consola
+
+Ambos archivos muestran logs detallados:
+- ✅ Conexión XAPI establecida
+- ✅ Eventos enviados al LRS
+- ✅ Comunicación con sistema padre
+- ❌ Errores de conexión
+
+## 🎯 Casos de Uso
+
+### 1. Testing de Actividades H5P
+```html
+<!-- Cargar actividad H5P externa -->
+<iframe src="test-xapi.html?h5p_url=https://h5p.org/h5p/embed/132"></iframe>
+```
+
+### 2. Integración en LMS
+```html
+<!-- Juego completo con tracking -->
+<iframe src="index.html" width="100%" height="600"></iframe>
+```
+
+### 3. Desarrollo y Testing
+- Usa `test-xapi.html` para probar diferentes actividades H5P
+- Configura diferentes endpoints XAPI
+- Prueba diferentes escenarios de completado/fallo
 
 ## 🛡️ Seguridad
 
-El sistema incluye validación de orígenes y verificación de mensajes para garantizar comunicación segura entre el iframe y el sistema padre.
+- ✅ Validación de orígenes en comunicación iframe
+- ✅ Sanitización de URLs de actividades H5P
+- ✅ Timeouts de seguridad para carga
+- ✅ Manejo de errores robusto
 
-## 🐛 Debugging
+## 📈 Datos Enviados al LRS
 
-Habilita `debug: true` en `xapi-config.js` para ver logs detallados en la consola del navegador.
-
-## 📈 Datos Enviados al LMS
-
-- **Estado**: Passed/Failed
+- **Estado**: Passed/Failed/Completed
 - **Puntuación**: Escalada de 0 a 1
 - **Tiempo**: Duración de la sesión
-- **Intentos**: Número de adivinanzas utilizadas
-- **Eficiencia**: Rendimiento del jugador
+- **Intentos**: Número de intentos realizados
+- **Eficiencia**: Rendimiento del usuario
+- **Contexto**: Información de la actividad H5P
 
-## 🎯 Ejemplo Completo
+## 🎯 Próximos Pasos
 
-Abre `parent-system-demo.html` en tu navegador para ver un ejemplo completo funcionando con logs en tiempo real.
+1. **Abrir `test-xapi.html`** para comenzar a probar
+2. **Configurar una actividad H5P** usando el panel de configuración
+3. **Probar diferentes escenarios** usando las funciones de test
+4. **Verificar logs XAPI** en la consola del navegador
+5. **Integrar en tu sistema** usando `index.html`
 
 ## 📞 Soporte
 
 Si tienes problemas:
 1. Revisa la consola del navegador
-2. Verifica que los orígenes estén permitidos
-3. Confirma la configuración XAPI
-4. Usa el modo debug para logs detallados
+2. Activa el modo debug
+3. Verifica la configuración XAPI
+4. Usa las funciones de test manual
+
+---
+
+**🎮 ¡Disfruta probando actividades H5P con tracking xAPI completo!**
