@@ -1,0 +1,30 @@
+{
+  "name": "runa-xapi",
+  "version": "1.0.0",
+  "description": "Juego de combinación de runas vikingas con integración XAPI optimizada para entornos personalizados con iframe",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "serve": "python3 -m http.server 8000"
+  },
+  "keywords": [
+    "xapi",
+    "tin-can-api",
+    "iframe",
+    "game",
+    "viking",
+    "runes",
+    "lms",
+    "learning"
+  ],
+  "author": "echeide",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Echeide/runa-xapi.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Echeide/runa-xapi/issues"
+  },
+  "homepage": "https://github.com/Echeide/runa-xapi#readme"
+}

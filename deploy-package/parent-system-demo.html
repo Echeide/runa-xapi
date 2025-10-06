@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Padre - Detección XAPI</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .code { background: #f5f5f5; padding: 10px; border-radius: 3px; font-family: monospace; white-space: pre-wrap; }
+        .log { background: #000; color: #0f0; padding: 10px; border-radius: 3px; font-family: monospace; height: 200px; overflow-y: auto; }
+        .status { padding: 5px 10px; border-radius: 3px; margin: 5px 0; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 15px; margin: 5px; border: none; border-radius: 3px; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-danger { background: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Sistema Padre - Detección XAPI</h1>
+        <p>Este es un ejemplo de cómo un sistema personalizado puede detectar y comunicarse con el juego Combinación Rúnica cargado en iframe.</p>
+
+        <div class="section">
+            <h2>📊 Estado del Sistema</h2>
+            <div id="status-container">
+                <div class="status info">Esperando conexión del juego...</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🎮 Controles del Sistema Padre</h2>
+            <button class="btn-primary" onclick="sendConfig()">Enviar Configuración XAPI</button>
+            <button class="btn-warning" onclick="pauseTracking()">Pausar Tracking</button>
+            <button class="btn-success" onclick="resumeTracking()">Reanudar Tracking</button>
+            <button class="btn-danger" onclick="resetSession()">Reiniciar Sesión</button>
+        </div>
+
+        <div class="section">
+            <h2>📝 Log de Eventos</h2>
+            <div id="log-container" class="log"></div>
+            <button onclick="clearLog()">Limpiar Log</button>
+        </div>
+
+        <div class="section">
+            <h2>🔧 Configuración XAPI</h2>
+            <div class="code" id="config-display">
+{
+  "endpoint": "https://tu-lrs-personalizado.com/xapi",
+  "username": "usuario-personalizado",
+  "password": "contraseña-personalizada",
+  "actor": {
+    "name": "Estudiante Demo",
+    "mbox": "mailto:estudiante@ejemplo.com"
+  },
+  "activityId": "urn:uuid:combinacion-runica-personalizada",
+  "activityName": "Combinación Rúnica - Versión Personalizada",
+  "activityDescription": "Juego de combinación de runas para sistema personalizado"
+}
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📋 Código del Sistema Padre</h2>
+            <p>Aquí está el código JavaScript que implementa la detección XAPI:</p>
+            <div class="code" id="parent-code">
+// Configuración XAPI del sistema padre
+const PARENT_XAPI_CONFIG = {
+    endpoint: 'https://tu-lrs-personalizado.com/xapi',
+    username: 'usuario-personalizado',
+    password: 'contraseña-personalizada',
+    actor: {
+        name: "Estudiante Demo",
+        mbox: "mailto:estudiante@ejemplo.com"
+    },
+    activityId: 'urn:uuid:combinacion-runica-personalizada',
+    activityName: 'Combinación Rúnica - Versión Personalizada',
+    activityDescription: 'Juego de combinación de runas para sistema personalizado'
+};
+
+// Estado del sistema
+let gameConnected = false;
+let gameSessionId = null;
+let xapiEvents = [];
+
+// Escuchar mensajes del iframe
+window.addEventListener('message', function(event) {
+    // Verificar origen del mensaje
+    if (!event.origin.includes('localhost') && !event.origin.includes('127.0.0.1')) {
+        return;
+    }
+    
+    logEvent('Mensaje recibido', event.data);
+    
+    switch (event.data.type) {
+        case 'REQUEST_XAPI_CONFIG':
+            // El juego solicita configuración
+            sendConfigToGame();
+            break;
+            
+        case 'XAPI_EVENT':
+            // El juego notifica un evento XAPI
+            handleXAPIEvent(event.data);
+            break;
+    }
+});
+
+// Enviar configuración al juego
+function sendConfigToGame() {
+    const iframe = document.getElementById('game-iframe');
+    if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({
+            type: 'XAPI_CONFIG',
+            config: PARENT_XAPI_CONFIG
+        }, '*');
+        
+        logEvent('Configuración enviada', PARENT_XAPI_CONFIG);
+    }
+}
+
+// Manejar eventos XAPI del juego
+function handleXAPIEvent(data) {
+    gameConnected = true;
+    gameSessionId = data.sessionId;
+    
+    // Registrar el evento
+    xapiEvents.push({
+        timestamp: data.timestamp,
+        eventType: data.eventType,
+        data: data.data
+    });
+    
+    logEvent(`Evento XAPI: ${data.eventType}`, data.data);
+    
+    // Actualizar estado
+    updateStatus(`Juego conectado - Sesión: ${data.sessionId}`);
+    
+    // Aquí puedes procesar los eventos según tu lógica de negocio
+    switch (data.eventType) {
+        case 'GAME_STARTED':
+            // El juego comenzó
+            break;
+        case 'ATTEMPT_MADE':
+            // El usuario hizo un intento
+            break;
+        case 'GAME_PASSED':
+            // El usuario completó el juego exitosamente
+            break;
+        case 'GAME_FAILED':
+            // El usuario falló en el juego
+            break;
+        case 'GAME_COMPLETED':
+            // El juego terminó
+            break;
+    }
+}
+
+// Funciones de control
+function pauseTracking() {
+    const iframe = document.getElementById('game-iframe');
+    if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({
+            type: 'XAPI_PAUSE'
+        }, '*');
+        logEvent('Comando enviado', 'XAPI_PAUSE');
+    }
+}
+
+function resumeTracking() {
+    const iframe = document.getElementById('game-iframe');
+    if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({
+            type: 'XAPI_RESUME'
+        }, '*');
+        logEvent('Comando enviado', 'XAPI_RESUME');
+    }
+}
+
+function resetSession() {
+    const iframe = document.getElementById('game-iframe');
+    if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({
+            type: 'XAPI_RESET'
+        }, '*');
+        logEvent('Comando enviado', 'XAPI_RESET');
+    }
+}
+
+// Funciones de utilidad
+function logEvent(type, data) {
+    const logContainer = document.getElementById('log-container');
+    const timestamp = new Date().toLocaleTimeString();
+    logContainer.innerHTML += `[${timestamp}] ${type}: ${JSON.stringify(data, null, 2)}\n`;
+    logContainer.scrollTop = logContainer.scrollHeight;
+}
+
+function updateStatus(message) {
+    const statusContainer = document.getElementById('status-container');
+    statusContainer.innerHTML = `<div class="status success">${message}</div>`;
+}
+
+function clearLog() {
+    document.getElementById('log-container').innerHTML = '';
+}
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🎯 Iframe del Juego</h2>
+            <iframe id="game-iframe" src="index.html" width="100%" height="600" frameborder="0"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // Configuración XAPI del sistema padre
+        const PARENT_XAPI_CONFIG = {
+            endpoint: 'https://tu-lrs-personalizado.com/xapi',
+            username: 'usuario-personalizado',
+            password: 'contraseña-personalizada',
+            actor: {
+                name: "Estudiante Demo",
+                mbox: "mailto:estudiante@ejemplo.com"
+            },
+            activityId: 'urn:uuid:combinacion-runica-personalizada',
+            activityName: 'Combinación Rúnica - Versión Personalizada',
+            activityDescription: 'Juego de combinación de runas para sistema personalizado'
+        };
+
+        // Estado del sistema
+        let gameConnected = false;
+        let gameSessionId = null;
+        let xapiEvents = [];
+
+        // Escuchar mensajes del iframe
+        window.addEventListener('message', function(event) {
+            // Verificar origen del mensaje
+            if (!event.origin.includes('localhost') && !event.origin.includes('127.0.0.1')) {
+                return;
+            }
+            
+            logEvent('Mensaje recibido', event.data);
+            
+            switch (event.data.type) {
+                case 'REQUEST_XAPI_CONFIG':
+                    // El juego solicita configuración
+                    sendConfigToGame();
+                    break;
+                    
+                case 'XAPI_EVENT':
+                    // El juego notifica un evento XAPI
+                    handleXAPIEvent(event.data);
+                    break;
+            }
+        });
+
+        // Enviar configuración al juego
+        function sendConfigToGame() {
+            const iframe = document.getElementById('game-iframe');
+            if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.postMessage({
+                    type: 'XAPI_CONFIG',
+                    config: PARENT_XAPI_CONFIG
+                }, '*');
+                
+                logEvent('Configuración enviada', PARENT_XAPI_CONFIG);
+            }
+        }
+
+        // Manejar eventos XAPI del juego
+        function handleXAPIEvent(data) {
+            gameConnected = true;
+            gameSessionId = data.sessionId;
+            
+            // Registrar el evento
+            xapiEvents.push({
+                timestamp: data.timestamp,
+                eventType: data.eventType,
+                data: data.data
+            });
+            
+            logEvent(`Evento XAPI: ${data.eventType}`, data.data);
+            
+            // Actualizar estado
+            updateStatus(`Juego conectado - Sesión: ${data.sessionId}`);
+            
+            // Aquí puedes procesar los eventos según tu lógica de negocio
+            switch (data.eventType) {
+                case 'GAME_STARTED':
+                    // El juego comenzó
+                    break;
+                case 'ATTEMPT_MADE':
+                    // El usuario hizo un intento
+                    break;
+                case 'GAME_PASSED':
+                    // El usuario completó el juego exitosamente
+                    break;
+                case 'GAME_FAILED':
+                    // El usuario falló en el juego
+                    break;
+                case 'GAME_COMPLETED':
+                    // El juego terminó
+                    break;
+            }
+        }
+
+        // Funciones de control
+        function pauseTracking() {
+            const iframe = document.getElementById('game-iframe');
+            if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.postMessage({
+                    type: 'XAPI_PAUSE'
+                }, '*');
+                logEvent('Comando enviado', 'XAPI_PAUSE');
+            }
+        }
+
+        function resumeTracking() {
+            const iframe = document.getElementById('game-iframe');
+            if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.postMessage({
+                    type: 'XAPI_RESUME'
+                }, '*');
+                logEvent('Comando enviado', 'XAPI_RESUME');
+            }
+        }
+
+        function resetSession() {
+            const iframe = document.getElementById('game-iframe');
+            if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.postMessage({
+                    type: 'XAPI_RESET'
+                }, '*');
+                logEvent('Comando enviado', 'XAPI_RESET');
+            }
+        }
+
+        // Funciones de utilidad
+        function logEvent(type, data) {
+            const logContainer = document.getElementById('log-container');
+            const timestamp = new Date().toLocaleTimeString();
+            logContainer.innerHTML += `[${timestamp}] ${type}: ${JSON.stringify(data, null, 2)}\n`;
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function updateStatus(message) {
+            const statusContainer = document.getElementById('status-container');
+            statusContainer.innerHTML = `<div class="status success">${message}</div>`;
+        }
+
+        function clearLog() {
+            document.getElementById('log-container').innerHTML = '';
+        }
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            logEvent('Sistema iniciado', 'Esperando conexión del juego...');
+        });
+    </script>
+</body>
+</html>
