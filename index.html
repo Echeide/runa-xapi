@@ -291,6 +291,8 @@ document.addEventListener('DOMContentLoaded', () => {
         messageArea.style.color = '';
         guessBtn.disabled = false;
         clearBtn.disabled = false;
+        guessBtn.style.display = '';
+        clearBtn.style.display = '';
         guessBtn.textContent = "Probar";
         // Removido onclick para evitar duplicación con addEventListener
 
@@ -504,9 +506,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function endGame(isWin) {
-        guessBtn.disabled = true;
-        clearBtn.disabled = true;
+        // Ocultar botones de control al finalizar
+        guessBtn.style.display = 'none';
+        clearBtn.style.display = 'none';
+        
+        // Deshabilitar paleta de runas
         runePalette.querySelectorAll('[data-rune]').forEach(btn => btn.disabled = true);
+
+        console.log('🎮 Juego finalizado - Botones de control ocultados');
 
         // Calcular tiempo transcurrido
         gameEndTime = new Date();
@@ -587,9 +594,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Finalización registrada - Evento XAPI COMPLETED disparado');
         }
 
-        guessBtn.textContent = "De Nuevo";
-        guessBtn.disabled = false;
-        guessBtn.onclick = initGame;
+        console.log('🎮 Actividad completada. Para volver a jugar, recarga la página.');
     }
     
     // --- Funciones de Animación ---
