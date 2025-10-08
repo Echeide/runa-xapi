@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Actividad H5P - Pruebas</title>
+    <title>Test XAPI - Ahorcado Misterio</title>
     <style>
         /* Variables CSS */
         :root {
@@ -529,17 +529,17 @@
 
             <div class="form-group">
                 <label for="activityTitle">Título:</label>
-                <input type="text" id="activityTitle" value="Combinación Rúnica - Juego de Runas">
+                <input type="text" id="activityTitle" value="Misterio en la Máquina de Escribir">
             </div>
 
             <div class="form-group">
                 <label for="activityDescription">Descripción:</label>
-                <textarea id="activityDescription">Adivina la secuencia correcta de 4 runas vikingas. Tienes 8 intentos para encontrar la combinación correcta.</textarea>
+                <textarea id="activityDescription">Descubre títulos de obras de Agatha Christie. Tienes 6 errores permitidos antes de que el manuscrito quede inacabado.</textarea>
             </div>
 
             <div class="form-group">
                 <label for="h5pUrl">URL de H5P:</label>
-                <input type="url" id="h5pUrl" value="index.html">
+                <input type="url" id="h5pUrl" value="ahorcado.html">
             </div>
 
             <div class="form-group">
@@ -563,8 +563,8 @@
             <div class="form-group">
                 <label for="showDebug">Mostrar información de debug:</label>
                 <select id="showDebug">
-                    <option value="false">No</option>
                     <option value="true">Sí</option>
+                    <option value="false">No</option>
                 </select>
             </div>
 
@@ -579,11 +579,11 @@
     <div id="activityModal" class="activity-modal">
         <div class="header">
             <button class="close-btn" onclick="closeActivity()">✕</button>
-            <div class="title" id="activityTitleDisplay">Combinación Rúnica - Juego de Runas</div>
+            <div class="title" id="activityTitleDisplay">Misterio en la Máquina de Escribir</div>
         </div>
         <div class="content">
             <div class="h5p-activity">
-                <p class="description" id="activityDescriptionDisplay">Adivina la secuencia correcta de 4 runas vikingas. Tienes 8 intentos para encontrar la combinación correcta.</p>
+                <p class="description" id="activityDescriptionDisplay">Descubre títulos de obras de Agatha Christie. Tienes 6 errores permitidos antes de que el manuscrito quede inacabado.</p>
 
                 <div class="activity-content">
                     <!-- Información de debug -->
@@ -641,13 +641,13 @@
         const AppState = {
             // Configuración de la actividad
             config: {
-                title: "Combinación Rúnica - Juego de Runas",
-                description: "Adivina la secuencia correcta de 4 runas vikingas. Tienes 8 intentos para encontrar la combinación correcta.",
-                h5pUrl: "index.html",
+                title: "Misterio en la Máquina de Escribir",
+                description: "Descubre títulos de obras de Agatha Christie. Tienes 6 errores permitidos antes de que el manuscrito quede inacabado.",
+                h5pUrl: "ahorcado.html",
                 xapiSupport: true,
                 winPoints: 100,
                 failPoints: 0,
-                showDebug: false
+                showDebug: true
             },
 
             // Estado de la actividad
@@ -711,9 +711,21 @@
             const iframe = AppState.elements.h5pIframe;
             const config = AppState.config;
 
+            // Detectar idioma de la URL actual y pasarlo al iframe
+            const urlParams = new URLSearchParams(window.location.search);
+            const lang = urlParams.get('lang');
+            let iframeSrc = config.h5pUrl;
+            
+            // Añadir parámetro lang si existe
+            if (lang) {
+                const separator = iframeSrc.includes('?') ? '&' : '?';
+                iframeSrc = `${iframeSrc}${separator}lang=${lang}`;
+                console.log('🌐 Pasando idioma al iframe:', lang);
+            }
+
             // Configurar iframe
-            console.log('🔧 Configurando actividad con URL:', config.h5pUrl);
-            iframe.src = config.h5pUrl;
+            console.log('🔧 Configurando actividad con URL:', iframeSrc);
+            iframe.src = iframeSrc;
             iframe.title = config.title;
             console.log('🔧 Iframe configurado con src:', iframe.src);
 
