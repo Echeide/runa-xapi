@@ -49,15 +49,28 @@
             width: 95%;
             max-width: 700px;
         }
+        
+        @media (max-width: 480px) {
+            #typewriter-container {
+                padding: 15px;
+                width: 98%;
+            }
+        }
 
         #paper {
             background-color: var(--paper-color);
-            background-image: url('https://www.transparenttextures.com/patterns/crissxcross.png');
             box-shadow: 0 0 15px rgba(0,0,0,0.5);
             padding: 20px;
             margin: -50px auto 20px auto;
             border-radius: 3px;
             min-height: 120px;
+        }
+        
+        @media (max-width: 480px) {
+            #paper {
+                padding: 15px 10px;
+                min-height: 100px;
+            }
         }
         
         #mistakes-container {
@@ -66,6 +79,7 @@
             gap: 10px;
             margin-bottom: 20px;
             min-height: 40px;
+            flex-wrap: wrap;
         }
 
         .mistake-x {
@@ -81,6 +95,24 @@
             color: var(--primary-color);
             -webkit-text-stroke: 2px var(--primary-color);
             text-stroke: 2px var(--primary-color);
+        }
+        
+        @media (max-width: 480px) {
+            .mistake-x {
+                font-size: 2em;
+                -webkit-text-stroke: 1.5px var(--accent-color);
+                text-stroke: 1.5px var(--accent-color);
+            }
+            
+            .mistake-x.filled {
+                -webkit-text-stroke: 1.5px var(--primary-color);
+                text-stroke: 1.5px var(--primary-color);
+            }
+            
+            #mistakes-container {
+                gap: 8px;
+                margin-bottom: 15px;
+            }
         }
 
         #word-display {
@@ -106,6 +138,28 @@
         .letter-placeholder.space {
             border-bottom-color: transparent;
         }
+        
+        @media (max-width: 480px) {
+            #word-display {
+                gap: 6px;
+            }
+            
+            .letter-placeholder {
+                min-width: 20px;
+                height: 32px;
+                font-size: 1.8em;
+                border-bottom-width: 2px;
+                padding-bottom: 3px;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            .letter-placeholder {
+                min-width: 18px;
+                height: 28px;
+                font-size: 1.5em;
+            }
+        }
 
         #keyboard-container {
             display: grid;
@@ -114,6 +168,9 @@
             background-color: #333;
             padding: 10px;
             border-radius: 5px;
+            width: 100%;
+            max-width: 700px;
+            margin: 0 auto;
         }
 
         .key {
@@ -130,6 +187,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            min-width: 0; /* Permite que las teclas se encojan */
         }
         .key:active:not(:disabled) {
             transform: translateY(3px);
@@ -139,6 +197,63 @@
             background-color: var(--disabled-key-bg);
             color: #777;
             cursor: not-allowed;
+        }
+
+        /* Responsive para teclado */
+        @media (max-width: 768px) {
+            #keyboard-container {
+                grid-template-columns: repeat(9, 1fr);
+                gap: 6px;
+                padding: 8px;
+            }
+            
+            .key {
+                font-size: 1.3em;
+            }
+        }
+
+        @media (max-width: 600px) {
+            #keyboard-container {
+                grid-template-columns: repeat(7, 1fr);
+                gap: 5px;
+                padding: 8px;
+            }
+            
+            .key {
+                font-size: 1.2em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #keyboard-container {
+                grid-template-columns: repeat(6, 1fr);
+                gap: 5px;
+                padding: 8px;
+            }
+            
+            .key {
+                font-size: 1.1em;
+                border-width: 1.5px;
+                border-bottom-width: 4px;
+            }
+            
+            .key:active:not(:disabled) {
+                border-bottom-width: 1.5px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            #keyboard-container {
+                grid-template-columns: repeat(6, 1fr);
+                gap: 4px;
+                padding: 6px;
+            }
+            
+            .key {
+                font-size: 1em;
+                border-width: 1px;
+                border-bottom-width: 3px;
+            }
         }
 
         #result-container {
@@ -161,6 +276,17 @@
             border-radius: 5px;
             cursor: pointer;
             margin-top: 10px;
+        }
+        
+        @media (max-width: 480px) {
+            #result-display {
+                font-size: 1.4em;
+            }
+            
+            #restart-button {
+                font-size: 1em;
+                padding: 8px 16px;
+            }
         }
 
         #flash-overlay {
