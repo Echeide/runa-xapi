@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>El Espadachín</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
+
+        :root {
+            --background-color: #1a1a2e;
+            --player-color: #00e5ff;
+            --opponent-color: #ff4757;
+            --text-color: #e0e0e0;
+            --timer-color: #feca57;
+            --clash-color: #feca57;
+        }
+
+        html {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--background-color);
+            font-family: 'Cinzel', serif;
+            color: var(--text-color);
+            touch-action: none;
+            position: relative; /* Needed for the pseudo-element */
+        }
+
+        /* Background image with opacity */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('bad.jpg');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.3;
+            z-index: -1; /* Place it behind all content */
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+            background-color: transparent;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        #flash-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 5;
+            transition: opacity 0.3s ease-out;
+        }
+        
+        #flash-overlay.red {
+            background-color: var(--opponent-color);
+        }
+        
+        #flash-overlay.active {
+            opacity: 0.7;
+        }
+
+        #end-game-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 6;
+            transition: opacity 2s ease-in;
+        }
+
+        #end-game-overlay.active {
+            opacity: 1;
+        }
+        
+        #end-game-overlay.lose {
+             background-color: var(--opponent-color);
+        }
+
+        /* Instructions Modal */
+        #instructions-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 500px;
+            background-color: rgba(10, 10, 20, 0.9);
+            border: 2px solid var(--text-color);
+            border-radius: 15px;
+            padding: 20px;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #instructions-modal h2 {
+            margin-top: 0;
+            border-bottom: 1px solid var(--timer-color);
+            padding-bottom: 10px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .instruction-row {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .instruction-row svg {
+            width: 60px;
+            height: 60px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .instruction-row p {
+            margin: 0;
+            flex-grow: 1;
+        }
+
+        #start-modal-button {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            font-family: 'Cinzel', serif;
+            background-color: var(--player-color);
+            color: black;
+            border: 2px solid white;
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--player-color), 0 0 20px var(--player-color);
+            margin-top: 10px;
+        }
+
+
+        #ui-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 2;
+        }
+
+        .health-bar {
+            width: 80%;
+            max-width: 400px;
+            height: 20px;
+            border: 2px solid var(--text-color);
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        #player-health {
+            transform: rotate(180deg);
+        }
+
+        .health-fill {
+            height: 100%;
+            border-radius: 8px;
+            transition: width 0.5s ease-out;
+        }
+        
+        #player-health .health-fill {
+            background: linear-gradient(90deg, var(--player-color), #00aaff);
+            box-shadow: 0 0 10px var(--player-color), 0 0 20px var(--player-color);
+        }
+
+        #opponent-health .health-fill {
+            background: linear-gradient(90deg, var(--opponent-color), #ff2233);
+            box-shadow: 0 0 10px var(--opponent-color), 0 0 20px var(--opponent-color);
+        }
+        
+        #message-display {
+            font-size: 2.5em;
+            font-weight: 700;
+            text-align: center;
+            text-shadow: 0 0 10px #ffffff, 0 0 15px #ffffff;
+            animation: fadeInOut 2s ease-in-out;
+            margin-bottom: 10px;
+        }
+        
+        #timer-container {
+            width: 60%;
+            max-width: 300px;
+            height: 10px;
+            border: 1px solid var(--timer-color);
+            border-radius: 5px;
+            background-color: rgba(0,0,0,0.2);
+            visibility: hidden;
+        }
+
+        #timer-bar {
+            width: 100%;
+            height: 100%;
+            background-color: var(--timer-color);
+            border-radius: 4px;
+            transition: width 0.05s linear;
+        }
+
+
+        #start-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            font-size: 1.5em;
+            font-family: 'Cinzel', serif;
+            background-color: var(--opponent-color);
+            color: white;
+            border: 2px solid white;
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--opponent-color), 0 0 20px var(--opponent-color);
+            z-index: 10;
+            pointer-events: all;
+            display: none; /* Initially hidden */
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- Modal -->
+        <div id="instructions-modal">
+            <h2>Instrucciones</h2>
+            <div class="instruction-row">
+                <!-- Attack -->
+                <svg viewBox="0 0 24 24"><path fill="var(--player-color)" d="M11 4h2v12l5.5-5.5l1.42 1.42L12 19.84l-7.92-7.92L5.5 10.5L11 16V4Z"/></svg>
+                <p><b>¡ATACA!</b><br>Desliza hacia arriba para lanzar una estocada.</p>
+            </div>
+            <div class="instruction-row">
+                <!-- Defend Right -->
+                <svg viewBox="0 0 24 24"><path fill="var(--text-color)" d="M15.41 16.58L10.83 12l4.58-4.59L14 6l-6 6l6 6l1.41-1.42Z M6 6h2v12H6V6Z"/></svg>
+                <p><b>DEFENSA IZQUIERDA</b><br>Desliza hacia la izquierda.</p>
+            </div>
+            <div class="instruction-row">
+                <!-- Defend Left -->
+                 <svg viewBox="0 0 24 24"><path fill="var(--text-color)" d="M8.59 16.58L13.17 12L8.59 7.41L10 6l6 6l-6 6l-1.41-1.42Z M18 6h-2v12h2V6Z"/></svg>
+                <p><b>DEFENSA DERECHA</b><br>Desliza hacia la derecha.</p>
+            </div>
+            <div class="instruction-row">
+                <!-- Defend Top -->
+                <svg viewBox="0 0 24 24"><path fill="var(--text-color)" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6l-6 6l1.41 1.41Z M6 18h12v-2H6v2Z"/></svg>
+                <p><b>DEFENSA SUPERIOR</b><br>Dibuja un arco hacia arriba.</p>
+            </div>
+             <div class="instruction-row">
+                <!-- Defend Bottom -->
+                <svg viewBox="0 0 24 24"><path fill="var(--text-color)" d="M16.59 8.59L12 13.17L7.41 8.59L6 10l6 6l6-6l-1.41-1.41Z M6 6h12v2H6V6Z"/></svg>
+                <p><b>DEFENSA INFERIOR</b><br>Dibuja un arco hacia abajo.</p>
+            </div>
+            <button id="start-modal-button">¡A LUCHAR!</button>
+        </div>
+
+        <div id="flash-overlay"></div>
+        <div id="end-game-overlay"></div>
+        <canvas id="game-canvas"></canvas>
+        <div id="ui-container">
+            <div id="opponent-health" class="health-bar">
+                <div id="opponent-health-fill" class="health-fill"></div>
+            </div>
+            <div>
+                 <div id="message-display"></div>
+                 <div id="timer-container">
+                     <div id="timer-bar"></div>
+                 </div>
+            </div>
+            <div id="player-health" class="health-bar">
+                <div id="player-health-fill" class="health-fill"></div>
+            </div>
+        </div>
+        <button id="start-button">Comenzar Duelo</button>
+    </div>
+
+    <!-- Audio elements for preloading -->
+    <audio id="sound-block" src="sblock.mp3" preload="auto"></audio>
+    <audio id="sound-hit" src="shit.mp3" preload="auto"></audio>
+    <audio id="sound-player-hit" src="ay.mp3" preload="auto"></audio>
+    <audio id="sound-win" src="win.mp3" preload="auto"></audio>
+    <audio id="sound-lose" src="lose.mp3" preload="auto"></audio>
+
+    <script type="module">
+        // --- SETUP ---
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const messageDisplay = document.getElementById('message-display');
+        const startButton = document.getElementById('start-button');
+        const playerHealthFill = document.getElementById('player-health-fill');
+        const opponentHealthFill = document.getElementById('opponent-health-fill');
+        const timerContainer = document.getElementById('timer-container');
+        const timerBar = document.getElementById('timer-bar');
+        const flashOverlay = document.getElementById('flash-overlay');
+        const endGameOverlay = document.getElementById('end-game-overlay');
+        const instructionsModal = document.getElementById('instructions-modal');
+        const startModalButton = document.getElementById('start-modal-button');
+        
+        const sounds = {
+            block: document.getElementById('sound-block'),
+            hit: document.getElementById('sound-hit'),
+            playerHit: document.getElementById('sound-player-hit'),
+            win: document.getElementById('sound-win'),
+            lose: document.getElementById('sound-lose')
+        };
+        
+        const soundPool = {};
+        const POOL_SIZE = 5; // Number of audio instances per sound
+        
+        // --- GAME STATE ---
+        let gameState = 'START'; // START, DEFEND, ATTACK, HIT, GAMEOVER
+        let opponentAttackDirection = 'NONE'; // LEFT, RIGHT, TOP, BOTTOM
+        let playerHealth = 100;
+        let opponentHealth = 100;
+        const GESTURE_THRESHOLD = 50;
+        const OPPONENT_PARRY_CHANCE = 0.40; // 40%
+        
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchPath = [];
+
+        let opponentAttackTimer;
+        let particleEffects = [];
+
+        // Timer variables
+        let actionTimerId = null;
+        let actionTimerDuration = 0;
+        let actionTimerStart = 0;
+
+        // Resolved Colors
+        let clashColorValue;
+        let textColorValue;
+        
+        // --- CORE LOGIC ---
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        
+        function createSoundPool() {
+            for (const key in sounds) {
+                soundPool[key] = {
+                    pool: [],
+                    index: 0
+                };
+                for (let i = 0; i < POOL_SIZE; i++) {
+                    const audio = sounds[key].cloneNode();
+                    soundPool[key].pool.push(audio);
+                }
+            }
+        }
+
+
+        function init() {
+            resizeCanvas();
+            updateHealthBars();
+            createSoundPool(); // Create the audio pools
+            clashColorValue = getComputedStyle(document.documentElement).getPropertyValue('--clash-color').trim();
+            textColorValue = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim();
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+            window.addEventListener('resize', resizeCanvas);
+            // gameLoop will be started by the user
+        }
+
+        function unlockAudio() {
+            // This initial play on user gesture is crucial for mobile.
+            const soundToUnlock = soundPool.block.pool[0];
+            if (soundToUnlock.paused) {
+                 soundToUnlock.play().then(() => soundToUnlock.pause()).catch(() => {});
+            }
+        }
+        
+        function startGame() {
+            unlockAudio();
+            instructionsModal.style.display = 'none';
+            startButton.style.display = 'none';
+            endGameOverlay.classList.remove('active', 'lose');
+            
+            // Reset visual elements immediately
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particleEffects = [];
+            messageDisplay.textContent = '';
+            
+            // Reset game state
+            playerHealth = 100;
+            opponentHealth = 100;
+            updateHealthBars();
+            
+            gameState = 'START';
+            
+            // Set up the first round and restart the game loop
+            prepareToDefend();
+        }
+        
+        function showInstructionsAgain() {
+            startButton.style.display = 'none';
+            endGameOverlay.classList.remove('active', 'lose');
+            messageDisplay.textContent = '';
+            instructionsModal.style.display = 'flex';
+        }
+
+        startModalButton.addEventListener('click', startGame);
+        startButton.addEventListener('click', showInstructionsAgain);
+
+        // --- GAME LOOP ---
+        function gameLoop() {
+            if (gameState === 'GAMEOVER') return; // Stop the loop when game is over
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawAttackIndicator();
+            drawTouchPath();
+            drawParticles();
+            updateTimer();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- STATE MANAGEMENT & TIMERS ---
+        function startActionTimer(duration) {
+            actionTimerDuration = duration;
+            actionTimerStart = performance.now();
+            timerContainer.style.visibility = 'visible';
+            timerBar.style.width = '100%';
+            actionTimerId = true;
+        }
+
+        function stopActionTimer() {
+            if (actionTimerId) {
+                actionTimerId = null;
+                timerContainer.style.visibility = 'hidden';
+            }
+        }
+
+        function updateTimer() {
+            if (!actionTimerId) return;
+            const elapsed = performance.now() - actionTimerStart;
+            const remaining = Math.max(0, actionTimerDuration - elapsed);
+            const percentage = (remaining / actionTimerDuration) * 100;
+            timerBar.style.width = `${percentage}%`;
+        }
+        
+        function triggerFlash(type) {
+            flashOverlay.className = '';
+            requestAnimationFrame(() => {
+                flashOverlay.classList.add(type); // 'red' or '' for white
+                flashOverlay.classList.add('active');
+                setTimeout(() => {
+                    flashOverlay.classList.remove('active');
+                }, 100);
+            });
+        }
+
+
+        function prepareToDefend() {
+            if (gameState === 'GAMEOVER') return;
+            gameState = 'DEFEND';
+            // Start the game loop if it's not already running from a previous game
+            requestAnimationFrame(gameLoop);
+            
+            messageDisplay.textContent = '¡DEFENSA!';
+            const attackTypes = ['LEFT', 'RIGHT', 'TOP', 'BOTTOM'];
+            opponentAttackDirection = attackTypes[Math.floor(Math.random() * attackTypes.length)];
+            
+            const delay = 1200 + Math.random() * 1800;
+            startActionTimer(delay);
+            opponentAttackTimer = setTimeout(() => {
+                stopActionTimer();
+                if (gameState === 'DEFEND') { 
+                    playerTakesHit();
+                }
+            }, delay);
+        }
+
+        function successfulBlock() {
+            if (gameState !== 'DEFEND') return;
+            clearTimeout(opponentAttackTimer);
+            stopActionTimer();
+            opponentAttackDirection = 'NONE';
+            gameState = 'ATTACK';
+            messageDisplay.textContent = '¡ATACA!';
+            playSound('block');
+            createClashEffect();
+            
+            const attackWindow = 1200 + Math.random() * 1000;
+            startActionTimer(attackWindow);
+            setTimeout(() => {
+                if (gameState === 'ATTACK') {
+                    stopActionTimer();
+                    prepareToDefend();
+                }
+            }, attackWindow);
+        }
+
+        function successfulAttack() {
+            if (gameState !== 'ATTACK') return;
+            stopActionTimer();
+            
+            if (Math.random() < OPPONENT_PARRY_CHANCE) {
+                gameState = 'DEFEND';
+                messageDisplay.textContent = '¡PARADO!';
+                playSound('block');
+                createClashEffect();
+                setTimeout(prepareToDefend, 1500);
+                return;
+            }
+
+            gameState = 'HIT';
+            messageDisplay.textContent = '¡GOLPE!';
+            triggerFlash(''); // White flash
+            opponentHealth -= 25;
+            if(opponentHealth < 0) opponentHealth = 0;
+            updateHealthBars();
+            playSound('hit');
+            if (opponentHealth <= 0) {
+                endGame(true);
+            } else {
+                setTimeout(prepareToDefend, 1500);
+            }
+        }
+        
+        function playerTakesHit() {
+            gameState = 'HIT';
+            opponentAttackDirection = 'NONE';
+            messageDisplay.textContent = '¡HERIDO!';
+            triggerFlash('red'); // Red flash
+            playerHealth -= 20;
+            if(playerHealth < 0) playerHealth = 0;
+            updateHealthBars();
+            playSound('playerHit');
+            if (playerHealth <= 0) {
+                endGame(false);
+            } else {
+                setTimeout(prepareToDefend, 1500);
+            }
+        }
+
+        function endGame(playerWon) {
+            gameState = 'GAMEOVER';
+            opponentAttackDirection = 'NONE';
+            stopActionTimer();
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear final attack indicator
+            messageDisplay.textContent = playerWon ? '¡VICTORIA!' : 'DERROTA';
+            
+            if(playerWon) {
+                playSound('win');
+                endGameOverlay.classList.remove('lose');
+                endGameOverlay.classList.add('active');
+            } else {
+                playSound('lose');
+                endGameOverlay.classList.add('lose');
+                endGameOverlay.classList.add('active');
+            }
+
+            setTimeout(() => {
+                startButton.textContent = 'Jugar de Nuevo';
+                startButton.style.display = 'block';
+            }, 2000);
+        }
+
+        // --- GESTURE DETECTION ---
+        function detectUpwardSemicircle(path, deltaX) {
+            if (path.length < 5 || deltaX < GESTURE_THRESHOLD) return false;
+            const startPoint = path[0]; const endPoint = path[path.length - 1];
+            let peak = path[0];
+            for (let i = 1; i < path.length; i++) { if (path[i].y < peak.y) peak = path[i]; }
+            const isHighEnough = (startPoint.y - peak.y > GESTURE_THRESHOLD / 2) && (endPoint.y - peak.y > GESTURE_THRESHOLD / 2);
+            const isLeftToRight = endPoint.x > startPoint.x;
+            return isHighEnough && isLeftToRight;
+        }
+
+        function detectDownwardSemicircle(path, deltaX) {
+            if (path.length < 5 || Math.abs(deltaX) < GESTURE_THRESHOLD) return false;
+             const startPoint = path[0]; const endPoint = path[path.length - 1];
+            let trough = path[0];
+            for (let i = 1; i < path.length; i++) { if (path[i].y > trough.y) trough = path[i]; }
+            const isLowEnough = (trough.y - startPoint.y > GESTURE_THRESHOLD / 2) && (trough.y - endPoint.y > GESTURE_THRESHOLD / 2);
+            const isRightToLeft = endPoint.x < startPoint.x;
+            return isLowEnough && isRightToLeft;
+        }
+
+        // --- TOUCH EVENT HANDLERS ---
+        function handleTouchStart(e) {
+            e.preventDefault();
+            unlockAudio(); // Keep audio context active on every touch
+            if (gameState !== 'DEFEND' && gameState !== 'ATTACK') return;
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            touchPath = [{x: touchStartX, y: touchStartY}];
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (touchPath.length > 0) {
+                touchPath.push({x: e.touches[0].clientX, y: e.touches[0].clientY});
+            }
+        }
+
+        function handleTouchEnd(e) {
+            if (touchPath.length < 2) return;
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+            
+            if (gameState === 'DEFEND') {
+                let correctGesture = false;
+                if (opponentAttackDirection === 'TOP' && detectUpwardSemicircle(touchPath, deltaX)) {
+                    correctGesture = true;
+                } else if (opponentAttackDirection === 'BOTTOM' && detectDownwardSemicircle(touchPath, deltaX)) {
+                    correctGesture = true;
+                } else if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > GESTURE_THRESHOLD) {
+                    if (opponentAttackDirection === 'LEFT' && deltaX < 0) correctGesture = true;
+                    else if (opponentAttackDirection === 'RIGHT' && deltaX > 0) correctGesture = true;
+                }
+                
+                if (correctGesture) {
+                    successfulBlock();
+                } else {
+                    clearTimeout(opponentAttackTimer);
+                    stopActionTimer();
+                    playerTakesHit();
+                }
+            } 
+            else if (gameState === 'ATTACK' && Math.abs(deltaY) > Math.abs(deltaX) && deltaY < -GESTURE_THRESHOLD) {
+                successfulAttack();
+            }
+
+            touchPath = []; // Clear path
+        }
+
+
+        // --- DRAWING FUNCTIONS ---
+        function drawAttackIndicator() {
+            if (gameState !== 'DEFEND' || opponentAttackDirection === 'NONE') return;
+
+            const triangleSize = 40;
+            
+            ctx.fillStyle = textColorValue;
+            ctx.shadowColor = textColorValue;
+            ctx.shadowBlur = 15;
+            
+            if (Math.floor(performance.now() / 200) % 2 === 0) {
+                ctx.beginPath();
+                if (opponentAttackDirection === 'LEFT') {
+                    const yPos = canvas.height / 2;
+                    ctx.moveTo(0, yPos - triangleSize);
+                    ctx.lineTo(triangleSize, yPos);
+                    ctx.lineTo(0, yPos + triangleSize);
+                } else if (opponentAttackDirection === 'RIGHT') {
+                    const yPos = canvas.height / 2;
+                    ctx.moveTo(canvas.width, yPos - triangleSize);
+                    ctx.lineTo(canvas.width - triangleSize, yPos);
+                    ctx.lineTo(canvas.width, yPos + triangleSize);
+                } else if (opponentAttackDirection === 'TOP') {
+                    const xPos = canvas.width / 2;
+                    ctx.moveTo(xPos - triangleSize, 0);
+                    ctx.lineTo(xPos, triangleSize);
+                    ctx.lineTo(xPos + triangleSize, 0);
+                } else if (opponentAttackDirection === 'BOTTOM') {
+                    const xPos = canvas.width / 2;
+                    ctx.moveTo(xPos - triangleSize, canvas.height);
+                    ctx.lineTo(xPos, canvas.height - triangleSize);
+                    ctx.lineTo(xPos + triangleSize, canvas.height);
+                }
+                ctx.closePath();
+                ctx.fill();
+            }
+            
+            ctx.shadowBlur = 0;
+        }
+
+        function drawTouchPath() {
+            if (touchPath.length < 2) return;
+            ctx.beginPath();
+            ctx.moveTo(touchPath[0].x, touchPath[0].y);
+            for (let i = 1; i < touchPath.length; i++) {
+                ctx.lineTo(touchPath[i].x, touchPath[i].y);
+            }
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+        }
+
+        function drawParticles() {
+            for (let i = particleEffects.length - 1; i >= 0; i--) {
+                const p = particleEffects[i];
+                p.update();
+                p.draw(ctx);
+                if (p.life <= 0) {
+                    particleEffects.splice(i, 1);
+                }
+            }
+        }
+
+        function updateHealthBars() {
+            playerHealthFill.style.width = playerHealth + '%';
+            opponentHealthFill.style.width = opponentHealth + '%';
+        }
+
+        // --- SOUND ---
+        function playSound(type) {
+            if (!soundPool[type]) return;
+            const soundData = soundPool[type];
+            const soundToPlay = soundData.pool[soundData.index];
+            
+            soundToPlay.currentTime = 0;
+            soundToPlay.play().catch(error => console.error(`Error playing ${type} sound:`, error));
+
+            soundData.index = (soundData.index + 1) % POOL_SIZE; // Cycle to the next audio element in the pool
+        }
+        
+        // --- EFFECTS ---
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x; this.y = y;
+                this.vx = (Math.random() - 0.5) * 8;
+                this.vy = (Math.random() - 0.5) * 8;
+                this.size = Math.random() * 5 + 2;
+                this.life = 1; this.maxLife = 50; this.color = color;
+            }
+            update() {
+                this.x += this.vx; this.y += this.vy;
+                this.life = Math.max(0, this.life - 1 / this.maxLife);
+            }
+            draw(ctx) {
+                ctx.save();
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+        
+        function createClashEffect() {
+            const clashPoint = { x: canvas.width / 2, y: canvas.height / 2 };
+            for(let i=0; i<30; i++) {
+                particleEffects.push(new Particle(clashPoint.x, clashPoint.y, clashColorValue));
+            }
+        }
+
+        // --- INITIALIZATION CALL ---
+        init();
+
+    </script>
+</body>
+</html>
