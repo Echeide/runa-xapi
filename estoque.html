@@ -147,6 +147,7 @@
             margin-bottom: 15px;
         }
 
+        .instruction-row img,
         .instruction-row svg {
             width: 60px;
             height: 60px;
@@ -280,27 +281,27 @@
             <h2>Instrucciones</h2>
             <div class="instruction-row">
                 <!-- Attack -->
-                <svg viewBox="0 0 24 24"><path fill="var(--player-color)" d="M11 4h2v12l5.5-5.5l1.42 1.42L12 19.84l-7.92-7.92L5.5 10.5L11 16V4Z"/></svg>
+                <img src="estoque/icons/t_up.svg" alt="Ataque" style="width: 60px; height: 60px;">
                 <p><b>¡ATACA!</b><br>Desliza hacia arriba para lanzar una estocada.</p>
             </div>
             <div class="instruction-row">
-                <!-- Defend Right -->
-                <svg viewBox="0 0 24 24"><path fill="var(--text-color)" d="M15.41 16.58L10.83 12l4.58-4.59L14 6l-6 6l6 6l1.41-1.42Z M6 6h2v12H6V6Z"/></svg>
+                <!-- Defend Left -->
+                <img src="estoque/icons/t-left.svg" alt="Defensa Izquierda" style="width: 60px; height: 60px;">
                 <p><b>DEFENSA IZQUIERDA</b><br>Desliza hacia la izquierda.</p>
             </div>
             <div class="instruction-row">
-                <!-- Defend Left -->
-                 <svg viewBox="0 0 24 24"><path fill="var(--text-color)" d="M8.59 16.58L13.17 12L8.59 7.41L10 6l6 6l-6 6l-1.41-1.42Z M18 6h-2v12h2V6Z"/></svg>
+                <!-- Defend Right -->
+                <img src="estoque/icons/t-rigth.svg" alt="Defensa Derecha" style="width: 60px; height: 60px;">
                 <p><b>DEFENSA DERECHA</b><br>Desliza hacia la derecha.</p>
             </div>
             <div class="instruction-row">
                 <!-- Defend Top -->
-                <svg viewBox="0 0 24 24"><path fill="var(--text-color)" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6l-6 6l1.41 1.41Z M6 18h12v-2H6v2Z"/></svg>
+                <img src="estoque/icons/t-up-left.svg" alt="Defensa Superior" style="width: 60px; height: 60px;">
                 <p><b>DEFENSA SUPERIOR</b><br>Dibuja un arco hacia arriba.</p>
             </div>
              <div class="instruction-row">
                 <!-- Defend Bottom -->
-                <svg viewBox="0 0 24 24"><path fill="var(--text-color)" d="M16.59 8.59L12 13.17L7.41 8.59L6 10l6 6l6-6l-1.41-1.41Z M6 6h12v2H6V6Z"/></svg>
+                <img src="estoque/icons/t-down-rigth.svg" alt="Defensa Inferior" style="width: 60px; height: 60px;">
                 <p><b>DEFENSA INFERIOR</b><br>Dibuja un arco hacia abajo.</p>
             </div>
             <button id="start-modal-button">¡A LUCHAR!</button>
@@ -841,9 +842,9 @@
 
         // --- DRAWING FUNCTIONS ---
         function drawCombatArea() {
-            // Calcular dimensiones del área de combate (40% x 40%)
-            const areaWidth = canvas.width * 0.4;
-            const areaHeight = canvas.height * 0.4;
+            // Calcular dimensiones del área de combate (80% x 60%)
+            const areaWidth = canvas.width * 0.8;
+            const areaHeight = canvas.height * 0.6;
             const areaX = (canvas.width - areaWidth) / 2;
             const areaY = (canvas.height - areaHeight) / 2;
             
@@ -859,8 +860,8 @@
             const triangleSize = 40;
             
             // Calcular área de combate
-            const areaWidth = canvas.width * 0.4;
-            const areaHeight = canvas.height * 0.4;
+            const areaWidth = canvas.width * 0.8;
+            const areaHeight = canvas.height * 0.6;
             const areaX = (canvas.width - areaWidth) / 2;
             const areaY = (canvas.height - areaHeight) / 2;
             
