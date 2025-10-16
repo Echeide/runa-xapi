@@ -111,7 +111,7 @@
         }
 
         #end-game-overlay.active {
-            opacity: 1;
+            opacity: 0.85; /* Ligeramente translúcido para que el texto brille */
         }
         
         #end-game-overlay.lose {
@@ -231,6 +231,8 @@
             text-shadow: 0 0 10px #ffffff, 0 0 15px #ffffff;
             animation: fadeInOut 2s ease-in-out;
             margin-bottom: 10px;
+            position: relative;
+            z-index: 7; /* Por encima del end-game-overlay (z-index: 6) */
         }
         
         #timer-container {
