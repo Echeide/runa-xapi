@@ -738,11 +738,12 @@
             if (gameState !== 'DEFEND') return;
             clearTimeout(opponentAttackTimer);
             stopActionTimer();
+            const blockedDirection = opponentAttackDirection;
             opponentAttackDirection = 'NONE';
             gameState = 'ATTACK';
             messageDisplay.textContent = t.msgAttack;
             playSound('block');
-            createClashEffect();
+            createClashEffect(blockedDirection);
             successfulBlocks++;
             
             // Usar tiempos según nivel
@@ -1175,8 +1176,34 @@
             }
         }
         
-        function createClashEffect() {
-            const clashPoint = { x: canvas.width / 2, y: canvas.height / 2 };
+        function createClashEffect(direction = 'NONE') {
+            // Calcular área de combate
+            const areaWidth = canvas.width * 0.8;
+            const areaHeight = canvas.height * 0.6;
+            const areaX = (canvas.width - areaWidth) / 2;
+            const areaY = (canvas.height - areaHeight) / 2;
+            
+            let clashPoint = { x: canvas.width / 2, y: canvas.height / 2 };
+            
+            // Determinar posición del choque según la dirección
+            switch(direction) {
+                case 'LEFT':
+                    clashPoint = { x: areaX, y: canvas.height / 2 };
+                    break;
+                case 'RIGHT':
+                    clashPoint = { x: areaX + areaWidth, y: canvas.height / 2 };
+                    break;
+                case 'TOP':
+                    clashPoint = { x: canvas.width / 2, y: areaY };
+                    break;
+                case 'BOTTOM':
+                    clashPoint = { x: canvas.width / 2, y: areaY + areaHeight };
+                    break;
+                default:
+                    clashPoint = { x: canvas.width / 2, y: canvas.height / 2 };
+            }
+            
+            // Generar partículas en el punto de choque
             for(let i=0; i<30; i++) {
                 particleEffects.push(new Particle(clashPoint.x, clashPoint.y, clashColorValue));
             }
