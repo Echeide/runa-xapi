@@ -9,6 +9,9 @@
     <script src="XAPI_samples/h5p-xapi-events.js"></script>
     <script src="h5p-xapi-manager.js"></script>
     
+    <!-- Howler.js para audio robusto -->
+    <script src="estoque/js/howler.min.js"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
 
@@ -329,13 +332,6 @@
         <button id="start-button">Comenzar Duelo</button>
     </div>
 
-    <!-- Audio elements for preloading -->
-    <audio id="sound-block" src="estoque/sblock.mp3" preload="auto"></audio>
-    <audio id="sound-hit" src="estoque/shit.mp3" preload="auto"></audio>
-    <audio id="sound-player-hit" src="estoque/ay.mp3" preload="auto"></audio>
-    <audio id="sound-win" src="estoque/win.mp3" preload="auto"></audio>
-    <audio id="sound-lose" src="estoque/lose.mp3" preload="auto"></audio>
-
     <script type="module">
         // --- PARÁMETROS URL ---
         const urlParams = new URLSearchParams(window.location.search);
@@ -401,9 +397,9 @@
         
         // --- CONFIGURACIÓN DE IMÁGENES POR NPJ ---
         const npjBackgrounds = {
-            1: 'estoque/bad.jpg',
-            2: 'estoque/npj/npj2.jpg',
-            3: 'estoque/npj/npj3.jpg'
+            1: 'estoque/npj/bad.jpg',
+            2: 'estoque/npj/boxeo.png',
+            3: 'estoque/npj/boxeo2.png'
         };
         
         // Aplicar imagen de fondo según NPJ
@@ -512,16 +508,34 @@
         const instructionsModal = document.getElementById('instructions-modal');
         const startModalButton = document.getElementById('start-modal-button');
         
+        // --- AUDIO CON HOWLER.JS ---
         const sounds = {
-            block: document.getElementById('sound-block'),
-            hit: document.getElementById('sound-hit'),
-            playerHit: document.getElementById('sound-player-hit'),
-            win: document.getElementById('sound-win'),
-            lose: document.getElementById('sound-lose')
+            block: new Howl({
+                src: ['estoque/sblock.mp3'],
+                volume: 0.7,
+                preload: true
+            }),
+            hit: new Howl({
+                src: ['estoque/shit.mp3'],
+                volume: 0.8,
+                preload: true
+            }),
+            playerHit: new Howl({
+                src: ['estoque/ay.mp3'],
+                volume: 0.8,
+                preload: true
+            }),
+            win: new Howl({
+                src: ['estoque/win.mp3'],
+                volume: 0.9,
+                preload: true
+            }),
+            lose: new Howl({
+                src: ['estoque/lose.mp3'],
+                volume: 0.9,
+                preload: true
+            })
         };
-        
-        const soundPool = {};
-        const POOL_SIZE = 5; // Number of audio instances per sound
         
         // --- GAME STATE ---
         let gameState = 'START'; // START, DEFEND, ATTACK, HIT, GAMEOVER
@@ -557,25 +571,10 @@
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
         }
-        
-        function createSoundPool() {
-            for (const key in sounds) {
-                soundPool[key] = {
-                    pool: [],
-                    index: 0
-                };
-                for (let i = 0; i < POOL_SIZE; i++) {
-                    const audio = sounds[key].cloneNode();
-                    soundPool[key].pool.push(audio);
-                }
-            }
-        }
-
 
         function init() {
             resizeCanvas();
             updateHealthBars();
-            createSoundPool(); // Create the audio pools
             clashColorValue = getComputedStyle(document.documentElement).getPropertyValue('--clash-color').trim();
             textColorValue = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim();
             canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
@@ -602,15 +601,15 @@
                 document.querySelector('#instr-bottom-row').style.display = 'none';
             }
             
+            console.log('✅ Howler.js inicializado con todos los sonidos precargados');
+            
             // gameLoop will be started by the user
         }
 
         function unlockAudio() {
-            // This initial play on user gesture is crucial for mobile.
-            const soundToUnlock = soundPool.block.pool[0];
-            if (soundToUnlock.paused) {
-                 soundToUnlock.play().then(() => soundToUnlock.pause()).catch(() => {});
-            }
+            // Howler maneja automáticamente el desbloqueo de audio en móviles
+            // No es necesaria esta función, pero la mantenemos por compatibilidad
+            Howler.ctx?.resume();
         }
         
         function startGame() {
@@ -1081,14 +1080,17 @@
 
         // --- SOUND ---
         function playSound(type) {
-            if (!soundPool[type]) return;
-            const soundData = soundPool[type];
-            const soundToPlay = soundData.pool[soundData.index];
+            if (!sounds[type]) {
+                console.warn(`⚠️ Sonido no encontrado: ${type}`);
+                return;
+            }
             
-            soundToPlay.currentTime = 0;
-            soundToPlay.play().catch(error => console.error(`Error playing ${type} sound:`, error));
-
-            soundData.index = (soundData.index + 1) % POOL_SIZE; // Cycle to the next audio element in the pool
+            try {
+                // Howler maneja automáticamente múltiples reproducciones simultáneas
+                sounds[type].play();
+            } catch (error) {
+                console.error(`❌ Error reproduciendo sonido ${type}:`, error);
+            }
         }
         
         // --- EFFECTS ---
