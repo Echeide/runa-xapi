@@ -284,6 +284,9 @@
         <!-- Modal -->
         <div id="instructions-modal">
             <h2>Instrucciones</h2>
+            <p style="text-align: center; font-size: 0.9em; color: var(--timer-color); margin-bottom: 15px;">
+                💡 <span id="keyboard-hint">Desktop: Usa las flechas ←↑→↓ para defender y "A" para atacar</span>
+            </p>
             <div class="instruction-row">
                 <!-- Attack -->
                 <img src="estoque/icons/t_up.svg" alt="Ataque" style="width: 60px; height: 60px;">
@@ -347,6 +350,7 @@
         const translations = {
             es: {
                 instructions: "Instrucciones",
+                keyboardHint: "Desktop: Usa las flechas ←↑→↓ para defender y \"A\" para atacar",
                 attack: "¡ATACA!",
                 attackDesc: "Desliza hacia arriba para lanzar un ataque.",
                 defenseLeft: "DEFENSA IZQUIERDA",
@@ -370,6 +374,7 @@
             },
             en: {
                 instructions: "Instructions",
+                keyboardHint: "Desktop: Use arrow keys ←↑→↓ to defend and \"A\" to attack",
                 attack: "ATTACK!",
                 attackDesc: "Swipe up to launch an attack.",
                 defenseLeft: "LEFT DEFENSE",
@@ -581,12 +586,14 @@
             canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
             canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
             window.addEventListener('resize', resizeCanvas);
+            window.addEventListener('keydown', handleKeyPress);
             
             // Aplicar imagen de fondo según NPJ
             document.body.style.setProperty('--background-image', `url('${backgroundImage}')`);
             
             // Aplicar traducciones al HTML
             document.querySelector('#instructions-modal h2').textContent = t.instructions;
+            document.querySelector('#keyboard-hint').textContent = t.keyboardHint;
             document.querySelector('#start-modal-button').textContent = t.startButton;
             document.querySelector('#instr-attack').innerHTML = `<b>${t.attack}</b><br>${t.attackDesc}`;
             document.querySelector('#instr-left').innerHTML = `<b>${t.defenseLeft}</b><br>${t.defenseLeftDesc}`;
@@ -933,6 +940,61 @@
             return isLowEnough && isRightToLeft;
         }
 
+        // --- KEYBOARD EVENT HANDLERS (para testing en desktop) ---
+        function handleKeyPress(e) {
+            if (gameState !== 'DEFEND' && gameState !== 'ATTACK') return;
+            
+            if (gameState === 'DEFEND') {
+                let correctGesture = false;
+                
+                switch(e.key) {
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        if (opponentAttackDirection === 'LEFT') {
+                            correctGesture = true;
+                            console.log('⌨️ Defensa IZQUIERDA (teclado)');
+                        }
+                        break;
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        if (opponentAttackDirection === 'RIGHT') {
+                            correctGesture = true;
+                            console.log('⌨️ Defensa DERECHA (teclado)');
+                        }
+                        break;
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        if (opponentAttackDirection === 'TOP') {
+                            correctGesture = true;
+                            console.log('⌨️ Defensa SUPERIOR (teclado)');
+                        }
+                        break;
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        if (opponentAttackDirection === 'BOTTOM') {
+                            correctGesture = true;
+                            console.log('⌨️ Defensa INFERIOR (teclado)');
+                        }
+                        break;
+                }
+                
+                if (correctGesture) {
+                    successfulBlock();
+                } else if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+                    clearTimeout(opponentAttackTimer);
+                    stopActionTimer();
+                    playerTakesHit();
+                }
+            } 
+            else if (gameState === 'ATTACK') {
+                if (e.key === 'a' || e.key === 'A') {
+                    e.preventDefault();
+                    console.log('⌨️ ATAQUE (teclado)');
+                    successfulAttack();
+                }
+            }
+        }
+        
         // --- TOUCH EVENT HANDLERS ---
         function handleTouchStart(e) {
             e.preventDefault();
