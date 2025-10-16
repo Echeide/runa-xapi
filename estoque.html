@@ -284,9 +284,6 @@
         <!-- Modal -->
         <div id="instructions-modal">
             <h2>Instrucciones</h2>
-            <p style="text-align: center; font-size: 0.9em; color: var(--timer-color); margin-bottom: 15px;">
-                💡 <span id="keyboard-hint">Desktop: Usa las flechas ←↑→↓ para defender y "A" para atacar</span>
-            </p>
             <div class="instruction-row">
                 <!-- Attack -->
                 <img src="estoque/icons/t_up.svg" alt="Ataque" style="width: 60px; height: 60px;">
@@ -350,7 +347,6 @@
         const translations = {
             es: {
                 instructions: "Instrucciones",
-                keyboardHint: "Desktop: Usa las flechas ←↑→↓ para defender y \"A\" para atacar",
                 attack: "¡ATACA!",
                 attackDesc: "Desliza hacia arriba para lanzar un ataque.",
                 defenseLeft: "DEFENSA IZQUIERDA",
@@ -374,7 +370,6 @@
             },
             en: {
                 instructions: "Instructions",
-                keyboardHint: "Desktop: Use arrow keys ←↑→↓ to defend and \"A\" to attack",
                 attack: "ATTACK!",
                 attackDesc: "Swipe up to launch an attack.",
                 defenseLeft: "LEFT DEFENSE",
@@ -593,7 +588,6 @@
             
             // Aplicar traducciones al HTML
             document.querySelector('#instructions-modal h2').textContent = t.instructions;
-            document.querySelector('#keyboard-hint').textContent = t.keyboardHint;
             document.querySelector('#start-modal-button').textContent = t.startButton;
             document.querySelector('#instr-attack').innerHTML = `<b>${t.attack}</b><br>${t.attackDesc}`;
             document.querySelector('#instr-left').innerHTML = `<b>${t.defenseLeft}</b><br>${t.defenseLeftDesc}`;
