@@ -557,9 +557,9 @@
         let actionTimerDuration = 0;
         let actionTimerStart = 0;
 
-        // Resolved Colors
-        let clashColorValue;
-        let textColorValue;
+        // Resolved Colors (con valores por defecto)
+        let clashColorValue = '#feca57'; // Amarillo dorado
+        let textColorValue = '#e0e0e0'; // Gris claro
         
         // XAPI tracking
         let roundsPlayed = 0;
@@ -575,8 +575,17 @@
         function init() {
             resizeCanvas();
             updateHealthBars();
-            clashColorValue = getComputedStyle(document.documentElement).getPropertyValue('--clash-color').trim();
-            textColorValue = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim();
+            
+            // Obtener colores CSS con fallback
+            clashColorValue = getComputedStyle(document.documentElement).getPropertyValue('--clash-color').trim() || '#feca57';
+            textColorValue = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim() || '#e0e0e0';
+            
+            // Verificar que los colores se cargaron correctamente
+            if (!clashColorValue || clashColorValue === '') clashColorValue = '#feca57';
+            if (!textColorValue || textColorValue === '') textColorValue = '#e0e0e0';
+            
+            console.log('🎨 Colores inicializados:', { clash: clashColorValue, text: textColorValue });
+            
             canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
             canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
             canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
@@ -1210,7 +1219,13 @@
         }
 
         // --- INITIALIZATION CALL ---
-        init();
+        // Esperar a que todos los estilos CSS se carguen antes de inicializar
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            // Pequeño delay para asegurar que CSS está cargado
+            setTimeout(init, 100);
+        }
 
     </script>
 </body>
