@@ -19,6 +19,7 @@
             --text-color: #e0e0e0;
             --timer-color: #feca57;
             --clash-color: #feca57;
+            --background-image: url('estoque/bad.jpg');
         }
 
         html {
@@ -46,7 +47,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: url('estoque/bad.jpg');
+            background-image: var(--background-image);
             background-size: cover;
             background-position: center;
             opacity: 0.3;
@@ -153,6 +154,7 @@
             height: 60px;
             margin-right: 15px;
             flex-shrink: 0;
+            filter: brightness(0) invert(1); /* Convierte a blanco */
         }
 
         .instruction-row p {
@@ -282,27 +284,27 @@
             <div class="instruction-row">
                 <!-- Attack -->
                 <img src="estoque/icons/t_up.svg" alt="Ataque" style="width: 60px; height: 60px;">
-                <p><b>¡ATACA!</b><br>Desliza hacia arriba para lanzar una estocada.</p>
+                <p id="instr-attack"><b>¡ATACA!</b><br>Desliza hacia arriba para lanzar un ataque.</p>
             </div>
             <div class="instruction-row">
                 <!-- Defend Left -->
                 <img src="estoque/icons/t-left.svg" alt="Defensa Izquierda" style="width: 60px; height: 60px;">
-                <p><b>DEFENSA IZQUIERDA</b><br>Desliza hacia la izquierda.</p>
+                <p id="instr-left"><b>DEFENSA IZQUIERDA</b><br>Desliza hacia la izquierda.</p>
             </div>
             <div class="instruction-row">
                 <!-- Defend Right -->
                 <img src="estoque/icons/t-rigth.svg" alt="Defensa Derecha" style="width: 60px; height: 60px;">
-                <p><b>DEFENSA DERECHA</b><br>Desliza hacia la derecha.</p>
+                <p id="instr-right"><b>DEFENSA DERECHA</b><br>Desliza hacia la derecha.</p>
             </div>
-            <div class="instruction-row">
+            <div class="instruction-row" id="instr-top-row">
                 <!-- Defend Top -->
                 <img src="estoque/icons/t-up-left.svg" alt="Defensa Superior" style="width: 60px; height: 60px;">
-                <p><b>DEFENSA SUPERIOR</b><br>Dibuja un arco hacia arriba.</p>
+                <p id="instr-top"><b>DEFENSA SUPERIOR</b><br>Dibuja un arco hacia arriba.</p>
             </div>
-             <div class="instruction-row">
+             <div class="instruction-row" id="instr-bottom-row">
                 <!-- Defend Bottom -->
                 <img src="estoque/icons/t-down-rigth.svg" alt="Defensa Inferior" style="width: 60px; height: 60px;">
-                <p><b>DEFENSA INFERIOR</b><br>Dibuja un arco hacia abajo.</p>
+                <p id="instr-bottom"><b>DEFENSA INFERIOR</b><br>Dibuja un arco hacia abajo.</p>
             </div>
             <button id="start-modal-button">¡A LUCHAR!</button>
         </div>
@@ -335,6 +337,111 @@
     <audio id="sound-lose" src="estoque/lose.mp3" preload="auto"></audio>
 
     <script type="module">
+        // --- PARÁMETROS URL ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const lang = ['es', 'en'].includes(urlParams.get('lang')) ? urlParams.get('lang') : 'es';
+        const nivel = [1, 2, 3].includes(parseInt(urlParams.get('nivel'))) ? parseInt(urlParams.get('nivel')) : 2;
+        const npj = parseInt(urlParams.get('npj')) || 1;
+        
+        console.log('🌐 Idioma:', lang);
+        console.log('🎯 Nivel:', nivel);
+        console.log('🎨 NPJ:', npj);
+        
+        // --- TRADUCCIONES ---
+        const translations = {
+            es: {
+                instructions: "Instrucciones",
+                attack: "¡ATACA!",
+                attackDesc: "Desliza hacia arriba para lanzar un ataque.",
+                defenseLeft: "DEFENSA IZQUIERDA",
+                defenseLeftDesc: "Desliza hacia la izquierda.",
+                defenseRight: "DEFENSA DERECHA",
+                defenseRightDesc: "Desliza hacia la derecha.",
+                defenseTop: "DEFENSA SUPERIOR",
+                defenseTopDesc: "Dibuja un arco hacia arriba.",
+                defenseBottom: "DEFENSA INFERIOR",
+                defenseBottomDesc: "Dibuja un arco hacia abajo.",
+                startButton: "¡A LUCHAR!",
+                msgDefense: "¡DEFENSA!",
+                msgAttack: "¡ATACA!",
+                msgBlock: "¡BLOQUEADO!",
+                msgParry: "¡PARADO!",
+                msgHit: "¡GOLPE!",
+                msgHurt: "¡HERIDO!",
+                msgVictory: "¡VICTORIA!",
+                msgDefeat: "DERROTA",
+                playAgain: "Jugar de Nuevo"
+            },
+            en: {
+                instructions: "Instructions",
+                attack: "ATTACK!",
+                attackDesc: "Swipe up to launch an attack.",
+                defenseLeft: "LEFT DEFENSE",
+                defenseLeftDesc: "Swipe left.",
+                defenseRight: "RIGHT DEFENSE",
+                defenseRightDesc: "Swipe right.",
+                defenseTop: "TOP DEFENSE",
+                defenseTopDesc: "Draw an arc upwards.",
+                defenseBottom: "BOTTOM DEFENSE",
+                defenseBottomDesc: "Draw an arc downwards.",
+                startButton: "LET'S FIGHT!",
+                msgDefense: "DEFEND!",
+                msgAttack: "ATTACK!",
+                msgBlock: "BLOCKED!",
+                msgParry: "PARRIED!",
+                msgHit: "HIT!",
+                msgHurt: "HURT!",
+                msgVictory: "VICTORY!",
+                msgDefeat: "DEFEAT",
+                playAgain: "Play Again"
+            }
+        };
+        
+        const t = translations[lang];
+        
+        // --- CONFIGURACIÓN DE IMÁGENES POR NPJ ---
+        const npjBackgrounds = {
+            1: 'estoque/bad.jpg',
+            2: 'estoque/npj/npj2.jpg',
+            3: 'estoque/npj/npj3.jpg'
+        };
+        
+        // Aplicar imagen de fondo según NPJ
+        const backgroundImage = npjBackgrounds[npj] || npjBackgrounds[1];
+        
+        // --- CONFIGURACIÓN DE NIVELES ---
+        const levelConfig = {
+            1: { // Fácil
+                opponentParryChance: 0.25,
+                defenseTimeMin: 1800,
+                defenseTimeMax: 2800,
+                attackTimeMin: 1500,
+                attackTimeMax: 2200,
+                allowedDirections: ['LEFT', 'RIGHT'], // Solo izquierda y derecha
+                name: lang === 'es' ? 'Fácil' : 'Easy'
+            },
+            2: { // Normal (actual)
+                opponentParryChance: 0.40,
+                defenseTimeMin: 1200,
+                defenseTimeMax: 1800,
+                attackTimeMin: 1200,
+                attackTimeMax: 1000,
+                allowedDirections: ['LEFT', 'RIGHT', 'TOP', 'BOTTOM'],
+                name: lang === 'es' ? 'Normal' : 'Normal'
+            },
+            3: { // Difícil
+                opponentParryChance: 0.55,
+                defenseTimeMin: 800,
+                defenseTimeMax: 1400,
+                attackTimeMin: 800,
+                attackTimeMax: 1200,
+                allowedDirections: ['LEFT', 'RIGHT', 'TOP', 'BOTTOM'],
+                name: lang === 'es' ? 'Difícil' : 'Hard'
+            }
+        };
+        
+        const currentLevel = levelConfig[nivel];
+        
         // --- XAPI SETUP ---
         const isInIframe = window.parent !== window;
         console.log('🔍 Detectado iframe:', isInIframe);
@@ -345,10 +452,15 @@
         // Inicializar XAPI Manager solo si NO estamos en iframe
         if (!isInIframe) {
             try {
+                const activityName = lang === 'es' ? 'El Espadachín' : 'The Swordsman';
+                const activityDesc = lang === 'es' 
+                    ? `Juego de duelo de espadas con gestos táctiles - Nivel ${currentLevel.name}` 
+                    : `Sword duel game with touch gestures - Level ${currentLevel.name}`;
+                    
                 xapiManager = new H5PXAPIManager({
                     activityId: 'urn:uuid:espadachin-duelo-espadas',
-                    activityName: 'El Espadachín',
-                    activityDescription: 'Juego de duelo de espadas con gestos táctiles'
+                    activityName: activityName,
+                    activityDescription: activityDesc
                 });
                 console.log('✅ XAPI Manager inicializado correctamente');
             } catch (e) {
@@ -470,6 +582,26 @@
             canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
             canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
             window.addEventListener('resize', resizeCanvas);
+            
+            // Aplicar imagen de fondo según NPJ
+            document.body.style.setProperty('--background-image', `url('${backgroundImage}')`);
+            
+            // Aplicar traducciones al HTML
+            document.querySelector('#instructions-modal h2').textContent = t.instructions;
+            document.querySelector('#start-modal-button').textContent = t.startButton;
+            document.querySelector('#instr-attack').innerHTML = `<b>${t.attack}</b><br>${t.attackDesc}`;
+            document.querySelector('#instr-left').innerHTML = `<b>${t.defenseLeft}</b><br>${t.defenseLeftDesc}`;
+            document.querySelector('#instr-right').innerHTML = `<b>${t.defenseRight}</b><br>${t.defenseRightDesc}`;
+            document.querySelector('#instr-top').innerHTML = `<b>${t.defenseTop}</b><br>${t.defenseTopDesc}`;
+            document.querySelector('#instr-bottom').innerHTML = `<b>${t.defenseBottom}</b><br>${t.defenseBottomDesc}`;
+            document.title = lang === 'es' ? 'El Espadachín' : 'The Swordsman';
+            
+            // Ocultar instrucciones de TOP y BOTTOM en nivel 1
+            if (nivel === 1) {
+                document.querySelector('#instr-top-row').style.display = 'none';
+                document.querySelector('#instr-bottom-row').style.display = 'none';
+            }
+            
             // gameLoop will be started by the user
         }
 
@@ -585,11 +717,14 @@
             // Start the game loop if it's not already running from a previous game
             requestAnimationFrame(gameLoop);
             
-            messageDisplay.textContent = '¡DEFENSA!';
-            const attackTypes = ['LEFT', 'RIGHT', 'TOP', 'BOTTOM'];
+            messageDisplay.textContent = t.msgDefense;
+            
+            // Usar direcciones permitidas según nivel
+            const attackTypes = currentLevel.allowedDirections;
             opponentAttackDirection = attackTypes[Math.floor(Math.random() * attackTypes.length)];
             
-            const delay = 1200 + Math.random() * 1800;
+            // Usar tiempos según nivel
+            const delay = currentLevel.defenseTimeMin + Math.random() * (currentLevel.defenseTimeMax - currentLevel.defenseTimeMin);
             startActionTimer(delay);
             opponentAttackTimer = setTimeout(() => {
                 stopActionTimer();
@@ -605,12 +740,13 @@
             stopActionTimer();
             opponentAttackDirection = 'NONE';
             gameState = 'ATTACK';
-            messageDisplay.textContent = '¡ATACA!';
+            messageDisplay.textContent = t.msgAttack;
             playSound('block');
             createClashEffect();
             successfulBlocks++;
             
-            const attackWindow = 1200 + Math.random() * 1000;
+            // Usar tiempos según nivel
+            const attackWindow = currentLevel.attackTimeMin + Math.random() * (currentLevel.attackTimeMax - currentLevel.attackTimeMin);
             startActionTimer(attackWindow);
             setTimeout(() => {
                 if (gameState === 'ATTACK') {
@@ -624,9 +760,10 @@
             if (gameState !== 'ATTACK') return;
             stopActionTimer();
             
-            if (Math.random() < OPPONENT_PARRY_CHANCE) {
+            // Usar probabilidad de parada según nivel
+            if (Math.random() < currentLevel.opponentParryChance) {
                 gameState = 'DEFEND';
-                messageDisplay.textContent = '¡PARADO!';
+                messageDisplay.textContent = t.msgParry;
                 playSound('block');
                 createClashEffect();
                 setTimeout(prepareToDefend, 1500);
@@ -634,7 +771,7 @@
             }
 
             gameState = 'HIT';
-            messageDisplay.textContent = '¡GOLPE!';
+            messageDisplay.textContent = t.msgHit;
             triggerFlash(''); // White flash
             opponentHealth -= 25;
             if(opponentHealth < 0) opponentHealth = 0;
@@ -653,7 +790,7 @@
         function playerTakesHit() {
             gameState = 'HIT';
             opponentAttackDirection = 'NONE';
-            messageDisplay.textContent = '¡HERIDO!';
+            messageDisplay.textContent = t.msgHurt;
             triggerFlash('red'); // Red flash
             playerHealth -= 20;
             if(playerHealth < 0) playerHealth = 0;
@@ -673,7 +810,7 @@
             opponentAttackDirection = 'NONE';
             stopActionTimer();
             ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear final attack indicator
-            messageDisplay.textContent = playerWon ? '¡VICTORIA!' : 'DERROTA';
+            messageDisplay.textContent = playerWon ? t.msgVictory : t.msgDefeat;
             
             // Calcular estadísticas
             const timeSpent = (Date.now() - gameStartTime) / 1000;
@@ -696,7 +833,11 @@
                             extensions: {
                                 'http://adlnet.gov/expapi/extension/rounds-played': roundsPlayed,
                                 'http://adlnet.gov/expapi/extension/successful-blocks': successfulBlocks,
-                                'http://adlnet.gov/expapi/extension/successful-attacks': successfulAttacks
+                                'http://adlnet.gov/expapi/extension/successful-attacks': successfulAttacks,
+                                'http://adlnet.gov/expapi/extension/difficulty-level': nivel,
+                                'http://adlnet.gov/expapi/extension/difficulty-name': currentLevel.name,
+                                'http://adlnet.gov/expapi/extension/language': lang,
+                                'http://adlnet.gov/expapi/extension/character': npj
                             }
                         }
                     });
@@ -735,7 +876,11 @@
                                 extensions: {
                                     'http://adlnet.gov/expapi/extension/rounds-played': roundsPlayed,
                                     'http://adlnet.gov/expapi/extension/successful-blocks': successfulBlocks,
-                                    'http://adlnet.gov/expapi/extension/successful-attacks': successfulAttacks
+                                    'http://adlnet.gov/expapi/extension/successful-attacks': successfulAttacks,
+                                    'http://adlnet.gov/expapi/extension/difficulty-level': nivel,
+                                    'http://adlnet.gov/expapi/extension/difficulty-name': currentLevel.name,
+                                    'http://adlnet.gov/expapi/extension/language': lang,
+                                    'http://adlnet.gov/expapi/extension/character': npj
                                 }
                             }
                         });
@@ -763,7 +908,7 @@
 
             // No mostrar botón de reinicio en contexto de actividad XAPI
             // setTimeout(() => {
-            //     startButton.textContent = 'Jugar de Nuevo';
+            //     startButton.textContent = t.playAgain;
             //     startButton.style.display = 'block';
             // }, 2000);
         }
