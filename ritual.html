@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Ritual del Alquimista</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=MedievalSharp&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <style>
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background-color: #2d3748; /* gray-800 */
+        }
+        body {
+            
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .title-font {
+            font-family: 'Cinzel', serif;
+        }
+        #cauldron-display {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background-color: #1a202c;
+            border: 8px solid #4a5568;
+            box-shadow: inset 0 0 20px #000;
+            transition: all 0.2s;
+            font-size: 5rem;
+        }
+        #cauldron-display.active {
+            background-color: #4a3760;
+            box-shadow: inset 0 0 30px #000, 0 0 20px #a78bfa;
+        }
+        .ingredient-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 1rem;
+            width: 200px;
+            margin: 0 auto;
+        }
+        .ingredient {
+            transition: all 0.2s ease;
+            cursor: pointer;
+            height: 90px;
+        }
+        .ingredient.lit {
+            transform: scale(1.1);
+            background-color: #a78bfa !important;
+            box-shadow: 0 0 15px #a78bfa;
+        }
+        .ingredient:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .progress-slot {
+            width: 40px;
+            height: 40px;
+            background-color: rgba(0,0,0,0.3);
+            border: 2px solid #718096;
+            color: #d1d5db;
+        }
+        .progress-slot.complete {
+            background-color: #a78bfa;
+            border-color: #c4b5fd;
+            color: #1e1b4b;
+            text-shadow: 0 0 5px #fff;
+        }
+        @keyframes shake {
+          10%, 90% { transform: translate3d(-1px, 0, 0); }
+          20%, 80% { transform: translate3d(2px, 0, 0); }
+          30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+          40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        .shake {
+          animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        .cracks-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 9998;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .cracks-overlay.visible {
+            opacity: 1;
+        }
+        .cracks-overlay line {
+            stroke: rgba(255, 255, 255, 0.7);
+            stroke-width: 0.2;
+        }
+    </style>
+</head>
+<body class="text-gray-300">
+    <div id="cracks-overlay" class="cracks-overlay">
+        <svg width="100%" height="100%" preserveAspectRatio="none">
+            <line x1="0" y1="0" x2="100%" y2="100%"/> <line x1="100%" y1="0" x2="0" y2="100%"/>
+            <line x1="50%" y1="0" x2="50%" y2="100%"/> <line x1="0" y1="50%" x2="100%" y2="50%"/>
+            <line x1="20%" y1="0" x2="80%" y2="100%"/> <line x1="80%" y1="0" x2="20%" y2="100%"/>
+        </svg>
+    </div>
+
+    <div class="container mx-auto p-4 max-w-sm text-center">
+        
+        <main class="bg-black bg-opacity-30 p-6 rounded-xl shadow-2xl relative">
+            
+            
+            <!-- Indicador de Progreso -->
+            <div id="progress-display" class="flex justify-center items-center gap-2 mb-4">
+                <!-- Los slots se generan con JS -->
+            </div>
+
+            <!-- Caldero y Mensajes -->
+            <div class="h-48 flex flex-col justify-center items-center mb-4">
+                <div id="cauldron-display" class="flex justify-center items-center"></div>
+                <p id="message-area" class="mt-4 text-lg text-violet-200 h-6"></p>
+            </div>
+
+            <!-- Estantería de Ingredientes -->
+            <div class="mb-6">
+                 <div id="ingredient-shelf" class="ingredient-grid text-5xl">
+                    <!-- Los ingredientes se generan con JS -->
+                </div>
+            </div>
+
+            <!-- Botón de Inicio -->
+            <div id="controls">
+                <button id="start-btn" class="bg-violet-500 hover:bg-violet-400 text-gray-900 title-font font-bold py-3 px-8 rounded-lg text-xl shadow-lg transition-transform transform hover:scale-105">
+                    Preparar pócima
+                </button>
+            </div>
+        </main>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Configuración del Juego ---
+    const INGREDIENTS = [
+        { id: 'Jenjibre', emoji: '🫚' }, { id: 'tear', emoji: '💧' },
+        { id: 'Rose', emoji: '🥀' }, { id: 'root', emoji: '🌿' }
+    ];
+    const ROUNDS_TO_WIN = 6;
+    const PROGRESS_STEPS = 3;
+    
+    // --- Elementos del DOM ---
+    const ingredientShelf = document.getElementById('ingredient-shelf');
+    const cauldronDisplay = document.getElementById('cauldron-display');
+    const messageArea = document.getElementById('message-area');
+    const progressDisplay = document.getElementById('progress-display');
+    const startBtn = document.getElementById('start-btn');
+    const cracksOverlay = document.getElementById('cracks-overlay');
+    const mainContainer = document.querySelector('main');
+
+    // --- Variables de Estado ---
+    let sequence = [];
+    let playerSequence = [];
+    let round = 0;
+    let canPlay = false;
+    
+    // --- Lógica de Audio (Web Audio API) ---
+    let audioContext;
+
+    // --- Integración con plataformas (xAPI via postMessage) ---
+    const isInIframe = window.parent !== window;
+
+    function sendToParent(eventType, data = {}) {
+        if (isInIframe && window.parent) {
+            window.parent.postMessage({
+                context: 'h5p',
+                action: 'xAPI',
+                statement: {
+                    verb: {
+                        id: `http://adlnet.gov/expapi/verbs/${eventType}`,
+                        display: { 'en-US': eventType }
+                    },
+                    result: data.result || {},
+                    ...data
+                }
+            }, '*');
+        }
+    }
+
+    function sendH5PEvent(eventType) {
+        if (isInIframe && window.parent) {
+            window.parent.postMessage({
+                type: `H5P_${eventType}`,
+                context: 'h5p'
+            }, '*');
+        }
+    }
+
+    /**
+     * Reproduce un sonido generado programáticamente por su ID.
+     * @param {string} id - La clave del sonido ('moon', 'win', etc.)
+     */
+    function playSound(id) {
+        if (!audioContext) return;
+
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+        let duration = 0.4;
+
+        switch (id) {
+            case 'moon':
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(880.00, audioContext.currentTime); // A5
+                break;
+            case 'tear':
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime); // E5
+                break;
+            case 'scale':
+                oscillator.type = 'triangle';
+                oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+                break;
+            case 'root':
+                oscillator.type = 'square';
+                oscillator.frequency.setValueAtTime(440.00, audioContext.currentTime); // A4
+                break;
+            case 'win':
+                duration = 0.5;
+                oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime + 0.0);
+                oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1);
+                oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2);
+                oscillator.frequency.setValueAtTime(1046.50, audioContext.currentTime + 0.3);
+                break;
+            case 'lose':
+                duration = 0.8;
+                oscillator.type = 'sawtooth';
+                oscillator.frequency.setValueAtTime(110, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(30, audioContext.currentTime + duration);
+                break;
+            default:
+                return; 
+        }
+
+        gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + duration);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration);
+    }
+
+    /**
+     * Prepara el tablero de juego
+     */
+    function setupGame() {
+        // Crear estantería
+        ingredientShelf.innerHTML = '';
+        INGREDIENTS.forEach(ing => {
+            const btn = document.createElement('button');
+            btn.id = `ing-${ing.id}`;
+            btn.dataset.id = ing.id;
+            btn.className = 'ingredient p-2 bg-black/20 rounded-lg flex justify-center items-center';
+            btn.textContent = ing.emoji;
+            btn.disabled = true;
+            btn.addEventListener('click', () => handlePlayerClick(ing));
+            ingredientShelf.appendChild(btn);
+        });
+        
+        // Crear progreso
+        progressDisplay.innerHTML = '';
+        for (let i = 0; i < PROGRESS_STEPS; i++) {
+            const slot = document.createElement('div');
+            slot.className = 'progress-slot rounded-full flex justify-center items-center font-bold text-xl';
+            slot.textContent = '?';
+            progressDisplay.appendChild(slot);
+        }
+    }
+    
+    /**
+     * Inicia una nueva partida
+     */
+    function startGame() {
+        // Inicializa el AudioContext con la primera interacción del usuario
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        startBtn.style.display = 'none';
+        round = 0;
+        sequence = [];
+        cauldronDisplay.innerHTML = '';
+        cauldronDisplay.classList.remove('active');
+        cracksOverlay.classList.remove('visible');
+        mainContainer.classList.remove('shake');
+        
+        document.querySelectorAll('.progress-slot').forEach(slot => {
+            slot.classList.remove('complete');
+            slot.textContent = '?';
+        });
+
+        // Notificar inicio (initialized)
+        if (isInIframe) {
+            sendToParent('initialized', { result: { completion: false, success: false } });
+            sendH5PEvent('STARTED');
+        }
+        nextRound();
+    }
+
+    /**
+     * Avanza a la siguiente ronda del ritual
+     */
+    function nextRound() {
+        canPlay = false;
+        playerSequence = [];
+        round++;
+        
+        updateProgress();
+
+        messageArea.textContent = 'Recuerda el orden...';
+        sequence.push(INGREDIENTS[Math.floor(Math.random() * INGREDIENTS.length)].id);
+        
+        playSequence();
+    }
+
+    /**
+     * Muestra la secuencia de ingredientes que el jugador debe memorizar
+     */
+    function playSequence() {
+        setIngredientsDisabled(true);
+        let speed = 1000;
+        if (round > 2) speed = 800;
+        if (round > 4) speed = 650;
+
+        let i = 0;
+        const interval = setInterval(() => {
+            if (i >= sequence.length) {
+                clearInterval(interval);
+                setIngredientsDisabled(false);
+                canPlay = true;
+                messageArea.textContent = 'Tu turno...';
+                cauldronDisplay.innerHTML = '';
+                return;
+            }
+            lightUpIngredient(sequence[i]);
+            i++;
+        }, speed);
+    }
+
+    /**
+     * Ilumina un ingrediente y lo muestra en el caldero
+     * @param {string} ingredientId - El ID del ingrediente a iluminar
+     */
+    function lightUpIngredient(ingredientId) {
+        const btn = document.getElementById(`ing-${ingredientId}`);
+        const ingredient = INGREDIENTS.find(ing => ing.id === ingredientId);
+        
+        if (btn && ingredient) {
+            playSound(ingredient.id);
+
+            btn.classList.add('lit');
+            cauldronDisplay.classList.add('active');
+            cauldronDisplay.textContent = ingredient.emoji;
+
+            setTimeout(() => {
+                btn.classList.remove('lit');
+                cauldronDisplay.classList.remove('active');
+            }, 600);
+        }
+    }
+    
+    /**
+     * Maneja el clic del jugador en un ingrediente
+     * @param {Object} ingredient - El objeto del ingrediente clickeado
+     */
+    function handlePlayerClick(ingredient) {
+        if (!canPlay) return;
+
+        playerSequence.push(ingredient.id);
+        lightUpIngredient(ingredient.id);
+        
+        const lastPlayerIndex = playerSequence.length - 1;
+        
+        if (playerSequence[lastPlayerIndex] !== sequence[lastPlayerIndex]) {
+            gameOver(false);
+            return;
+        }
+        
+        if (playerSequence.length === sequence.length) {
+            if(round === ROUNDS_TO_WIN) {
+                gameOver(true);
+            } else {
+                canPlay = false;
+                messageArea.textContent = '¡Correcto!';
+                setTimeout(nextRound, 1200);
+            }
+        }
+    }
+
+    /**
+     * Termina el juego, ya sea por victoria o derrota
+     * @param {boolean} isWin - True si el jugador ha ganado
+     */
+    function gameOver(isWin) {
+        canPlay = false;
+        setIngredientsDisabled(true);
+        
+        if (isWin) {
+            messageArea.textContent = '¡Ritual completado!';
+            cauldronDisplay.textContent = '🧪';
+            cauldronDisplay.classList.add('active');
+            playSound('win');
+            triggerConfetti();
+            // xAPI: passed + completed
+            if (isInIframe) {
+                sendToParent('passed', {
+                    result: {
+                        score: { raw: 100, max: 100 },
+                        completion: true,
+                        success: true
+                    }
+                });
+                sendH5PEvent('PASSED');
+                sendToParent('completed', {
+                    result: {
+                        score: { raw: 100, max: 100 },
+                        completion: true,
+                        success: true
+                    }
+                });
+                sendH5PEvent('COMPLETED');
+            }
+        } else {
+            messageArea.textContent = '¡Secuencia incorrecta!';
+            cauldronDisplay.innerHTML = '';
+            playSound('lose');
+            triggerExplosion();
+            // xAPI: failed + completed
+            if (isInIframe) {
+                sendToParent('failed', {
+                    result: {
+                        score: { raw: 0, max: 100 },
+                        completion: true,
+                        success: false
+                    }
+                });
+                sendH5PEvent('FAILED');
+                sendToParent('completed', {
+                    result: {
+                        score: { raw: 0, max: 100 },
+                        completion: true,
+                        success: false
+                    }
+                });
+                sendH5PEvent('COMPLETED');
+            }
+        }
+        
+        // Ocultar reinicio en contexto educativo (no mostrar botón al finalizar)
+        // startBtn.textContent = 'Jugar de Nuevo';
+        // startBtn.style.display = 'block';
+    }
+
+    function setIngredientsDisabled(isDisabled) {
+         document.querySelectorAll('.ingredient').forEach(btn => {
+            btn.disabled = isDisabled;
+        });
+    }
+
+    function updateProgress() {
+        if(round > 0 && round % 2 === 0) {
+            const slotIndex = (round / 2) - 1;
+            const slot = progressDisplay.children[slotIndex];
+            if(slot) {
+                slot.classList.add('complete');
+                slot.textContent = '✓';
+            }
+        }
+    }
+
+    function triggerConfetti() {
+        const duration = 2 * 1000;
+        const animationEnd = Date.now() + duration;
+        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
+        function randomInRange(min, max) { return Math.random() * (max - min) + min; }
+        const interval = setInterval(function() {
+            const timeLeft = animationEnd - Date.now();
+            if (timeLeft <= 0) return clearInterval(interval);
+            const particleCount = 50 * (timeLeft / duration);
+            confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+            confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+        }, 250);
+    }
+
+    function triggerExplosion() {
+        mainContainer.classList.add('shake');
+        cracksOverlay.classList.add('visible');
+        setTimeout(() => mainContainer.classList.remove('shake'), 820);
+    }
+
+
+    // --- Arranque del Juego ---
+    startBtn.addEventListener('click', startGame);
+    setupGame();
+});
+</script>
+</body>
+</html>
